@@ -1,0 +1,2265 @@
+{
+  "sheets": {
+    "DUTY_2025": [
+      {
+        "hsn": "04059000",
+        "product": "GHEE"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY"
+      },
+      {
+        "hsn": "07133119",
+        "product": "GREEN GRAM - OTHER"
+      },
+      {
+        "hsn": "07133129",
+        "product": "BLACK GRAM"
+      },
+      {
+        "hsn": "07133990",
+        "product": "BEANS - OTHERS"
+      },
+      {
+        "hsn": "07136010",
+        "product": "TOOR DHAL"
+      },
+      {
+        "hsn": "09019000",
+        "product": "COFFEE ROASTED"
+      },
+      {
+        "hsn": "09023021",
+        "product": "FLAVOURED TEA"
+      },
+      {
+        "hsn": "09042190",
+        "product": "CHILLIES- OTHER"
+      },
+      {
+        "hsn": "09042210",
+        "product": "CHILLIES"
+      },
+      {
+        "hsn": "09083290",
+        "product": "CARDAMOM"
+      },
+      {
+        "hsn": "09092200",
+        "product": "DHANIYA POWDER"
+      },
+      {
+        "hsn": "09093190",
+        "product": "BLACK CUMIN"
+      },
+      {
+        "hsn": "09103010",
+        "product": "TURMERIC"
+      },
+      {
+        "hsn": "09109190",
+        "product": "ASSORTED MASALA"
+      },
+      {
+        "hsn": "09109913",
+        "product": "KASTHURI METHI"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE"
+      },
+      {
+        "hsn": "10063019",
+        "product": "RICE OTHERS"
+      },
+      {
+        "hsn": "10082190",
+        "product": "MILLETS - OTHERS"
+      },
+      {
+        "hsn": "10089090",
+        "product": "MILLETS"
+      },
+      {
+        "hsn": "11031110",
+        "product": "WHEAT GROATS"
+      },
+      {
+        "hsn": "11032000",
+        "product": "RICE PELLETS"
+      },
+      {
+        "hsn": "11043000",
+        "product": "GROUNDED CEREALS"
+      },
+      {
+        "hsn": "11061010",
+        "product": "BLACK - GRAM FLOUR"
+      },
+      {
+        "hsn": "13012000",
+        "product": "GUM ARABIC"
+      },
+      {
+        "hsn": "15089000",
+        "product": "GROUNDNUT OIL"
+      },
+      {
+        "hsn": "15149900",
+        "product": "MUSTARD OIL"
+      },
+      {
+        "hsn": "151530",
+        "product": "CASTOR OIL AND ITS FRACTIONS"
+      },
+      {
+        "hsn": "151550",
+        "product": "GINGELLY OIL"
+      },
+      {
+        "hsn": "15162000",
+        "product": "DALDA"
+      },
+      {
+        "hsn": "17029021",
+        "product": "JAGGARY AND JAGGARY POWDER, PALM SUGAR"
+      },
+      {
+        "hsn": "17029090",
+        "product": "SUGAR BASED SNACK ITEM"
+      },
+      {
+        "hsn": "17049090",
+        "product": "SUGAR CANDY"
+      },
+      {
+        "hsn": "19019099",
+        "product": "HEALTH DRINK"
+      },
+      {
+        "hsn": "19021900",
+        "product": "VERMICILLI"
+      },
+      {
+        "hsn": "19041000",
+        "product": "CEREALS OR CEREAL PRODUCTS"
+      },
+      {
+        "hsn": "19049000",
+        "product": "PREPARED FOOD PUFFED RICE"
+      },
+      {
+        "hsn": "19053100",
+        "product": "SWEET BISCUITS"
+      },
+      {
+        "hsn": "19054010",
+        "product": "RUSK"
+      },
+      {
+        "hsn": "19059090",
+        "product": "PANI PURI KIT"
+      },
+      {
+        "hsn": "20019000",
+        "product": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20052000",
+        "product": "POTATO CHIPS"
+      },
+      {
+        "hsn": "21011200",
+        "product": "CHUKKU MALLI"
+      },
+      {
+        "hsn": "21011200",
+        "product": "COFFEE MIX"
+      },
+      {
+        "hsn": "21012011",
+        "product": "INSTANT TEA"
+      },
+      {
+        "hsn": "21039090",
+        "product": "ASSORTED MASALA"
+      },
+      {
+        "hsn": "21069060",
+        "product": "PAPADS - OTHERS"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIXES"
+      },
+      {
+        "hsn": "30049011",
+        "product": "MEDICAMENTS"
+      },
+      {
+        "hsn": "32030010",
+        "product": "FOOD COLOURS"
+      },
+      {
+        "hsn": "33019099",
+        "product": "ESSENTIAL OIL"
+      },
+      {
+        "hsn": "33079090",
+        "product": "POOJA POWDER"
+      },
+      {
+        "hsn": "34054090",
+        "product": "SCOURING PASTE AND POWDERS"
+      },
+      {
+        "hsn": "39269099",
+        "product": "PLASTICS - OTHERS"
+      },
+      {
+        "hsn": "56079090",
+        "product": "POOJA ROPE"
+      },
+      {
+        "hsn": "84818090",
+        "product": "TAPS, COOKS, VALES AND SIMILAR APPLIANCES"
+      },
+      {
+        "hsn": "23024090",
+        "product": "BIRD FOOD"
+      },
+      {
+        "hsn": "11010090",
+        "product": "RAVA"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLE, PASTA"
+      },
+      {
+        "hsn": "07119090",
+        "product": "PRESERVED VEGGIES"
+      },
+      {
+        "hsn": "04069000",
+        "product": "PANEER"
+      },
+      {
+        "hsn": "04039000",
+        "product": "CREAM"
+      },
+      {
+        "hsn": "08134090",
+        "product": "FRUITES DRIED - OTHER"
+      },
+      {
+        "hsn": "08134010",
+        "product": "TAMARIND"
+      },
+      {
+        "hsn": "70109010",
+        "product": "MT BOTTLES"
+      },
+      {
+        "hsn": "08021190",
+        "product": "ALMOND"
+      },
+      {
+        "hsn": "09011190",
+        "product": "COFFEE SEEDS"
+      },
+      {
+        "hsn": "11029020",
+        "product": "KURAKKAN FLOUR"
+      },
+      {
+        "hsn": "250100",
+        "product": "SALT"
+      },
+      {
+        "hsn": "20081990",
+        "product": "DRIED VEGGIES"
+      },
+      {
+        "hsn": "48194090",
+        "product": "SACKS - GIFT COVERS"
+      },
+      {
+        "hsn": "73239900",
+        "product": "PLATES"
+      }
+    ],
+    "ProductList": [
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 200 G",
+        "category": "CHILLIES- OTHER"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 500 G",
+        "category": "CHILLIES- OTHER"
+      },
+      {
+        "hsn": "11029020",
+        "product": "RAGI FLOUR 500 G",
+        "category": "KURAKKAN FLOUR"
+      },
+      {
+        "hsn": "09092200",
+        "product": "DANIYA POWDER - 500 G",
+        "category": "DHANIYA POWDER"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 200 G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "13012000",
+        "product": "ASAFOETIDA POWDER 50 G",
+        "category": "GUM ARABIC"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL PAYASAMMIX 175 G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069060",
+        "product": "PANI PURI KIT FAMILY 266 G",
+        "category": "PAPADS - OTHERS"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 200 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 200 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20019000",
+        "product": "GARLIC PICKLE 200 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 200 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MANGOTHOKKU PICKLE 200 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI MUTTON MASALA 50G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI RASAM POWER 50G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI CURRY MASAL POWDER 50G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI FISH CURRY MASALA 50G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI FISH FRY 50G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI IDLI CHILLI POWDER 50G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "09092200",
+        "product": "SAKTHI CORIANDER POWDER 500G",
+        "category": "DHANIYA POWDER"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SAKTHI CHILLI POWDER 500G",
+        "category": "CHILLIES- OTHER"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 400 G",
+        "category": "OATS"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 1 KG",
+        "category": "OATS"
+      },
+      {
+        "hsn": "21069060",
+        "product": "APPALAM 100G X 200PCS (EACH 15 KGS)",
+        "category": "PAPADS - OTHERS"
+      },
+      {
+        "hsn": "21069060",
+        "product": "APPALAM 200G X 75PCS (EACH 15 KGS)",
+        "category": "PAPADS - OTHERS"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 100 ML",
+        "category": "GHEE"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 200 ML",
+        "category": "GHEE"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 300G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 300 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 300 G",
+        "category": "ASSORTED PICKLES"
+      },
+      {
+        "hsn": "08134090",
+        "product": "TAMARIND 500 G",
+        "category": "FRUITES DRIED - OTHER"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG",
+        "category": "BASMATI RICE"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG",
+        "category": "BASMATI RICE"
+      },
+      {
+        "hsn": "04059000",
+        "product": "SATTVAM GHEE  1 LT",
+        "category": "GHEE"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAYASAM MIX 75 G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MAGGI MASALA 66 G",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "10063011",
+        "product": "SEERAGA RICE 1 KG",
+        "category": "BASMATI RICE"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG",
+        "category": "BASMATI RICE"
+      },
+      {
+        "hsn": "21069060",
+        "product": "POPALAR APPALAM",
+        "category": "PAPADS - OTHERS"
+      },
+      {
+        "hsn": "48194090",
+        "product": "GIFT BAGS",
+        "category": "SACKS - GIFT COVERS"
+      },
+      {
+        "hsn": "73239900",
+        "product": "PLATES",
+        "category": "PLATES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CORNFLAKES MIXTURE STANDY POUCH 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHUJIA SEV 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHELPURI 270 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHARI BOONDI 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "NAVRATAN MIX 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALL IN ONE 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALOO BHUJIA 200GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHATTA MEETHA 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SALTED PEANUTS 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DAL BIJI 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOLDEN MIXTURE 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MURUKKU (CHAKOLI) 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PUNJABI TADKA 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RATLAMI SEV 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAPAD CHAVANU 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PANCHRATAN MIXTURE 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI SAMOSA 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI BHAKARWADI 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOL KACHAURI 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GATHIYA 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FINE SEV 150 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MIXTURE 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SOYA STICKS 200 GM",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RASGULLA 1KG",
+        "category": "HEALTH MIXES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BIKANERI MED PAPAD(MM)200 GM",
+        "category": "HEALTH MIXES"
+      }
+    ],
+    "InvoiceGen": [
+      {
+        "hsn": "19053100",
+        "product": "50-50 BISCUIT 140.6 G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "50-50 CHEESE DIPPER BISCUIT 150G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "GOODDAY BUTTER BISCUIT  60G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "GOODDAY CASHEW BISCUIT 82.7G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "GOODDAY PISTA BADAM BISCUIT 112.7G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "DARK FANTASY CHOCOFILLS BISCUIT 69G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "MALKIST CHEESE BISCUIT 144G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "MALKIST CHOCOLATE BISCUIT 144G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "OREO VANILLA BISCUIT 116.9 G"
+      },
+      {
+        "hsn": "19053100",
+        "product": "HORLICKS PLAIN BISCUIT 150G"
+      }
+    ],
+    "P_1": [
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 200 G"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 500 G"
+      },
+      {
+        "hsn": "11029020",
+        "product": "RAGI FLOUR 500 G"
+      },
+      {
+        "hsn": "09092200",
+        "product": "DANIYA POWDER - 500 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 200 G"
+      },
+      {
+        "hsn": "13012000",
+        "product": "ASAFOETIDA POWDER 50 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL PAYASAMMIX 175 G"
+      },
+      {
+        "hsn": "21069060",
+        "product": "PANI PURI KIT FAMILY 266 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "GARLIC PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MANGOTHOKKU PICKLE 200 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI MUTTON MASALA 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI RASAM POWER 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI CURRY MASAL POWDER 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI FISH CURRY MASALA 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI FISH FRY 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI IDLI CHILLI POWDER 50G"
+      },
+      {
+        "hsn": "09092200",
+        "product": "SAKTHI CORIANDER POWDER 500G"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SAKTHI CHILLI POWDER 500G"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 400 G"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 1 KG"
+      },
+      {
+        "hsn": "21069060",
+        "product": "APPALAM 100G X 200PCS (EACH 15 KGS)"
+      },
+      {
+        "hsn": "21069060",
+        "product": "APPALAM 200G X 75PCS (EACH 15 KGS)"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 100 ML"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 200 ML"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 300G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 300 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 300 G"
+      },
+      {
+        "hsn": "08134090",
+        "product": "TAMARIND 500 G"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG"
+      },
+      {
+        "hsn": "04059000",
+        "product": "SATTVAM GHEE  1 LT"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAYASAM MIX 75 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MAGGI MASALA 66 G"
+      },
+      {
+        "hsn": "10063011",
+        "product": "SEERAGA RICE 1 KG"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG"
+      },
+      {
+        "hsn": "21069060",
+        "product": "POPALAR APPALAM"
+      },
+      {
+        "hsn": "48194090",
+        "product": "GIFT BAGS"
+      },
+      {
+        "hsn": "73239900",
+        "product": "PLATES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CORNFLAKES MIXTURE STANDY POUCH 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHUJIA SEV 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHELPURI 270 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHARI BOONDI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "NAVRATAN MIX 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALL IN ONE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALOO BHUJIA 200GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHATTA MEETHA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SALTED PEANUTS 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DAL BIJI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOLDEN MIXTURE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MURUKKU (CHAKOLI) 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PUNJABI TADKA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RATLAMI SEV 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAPAD CHAVANU 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PANCHRATAN MIXTURE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI SAMOSA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI BHAKARWADI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOL KACHAURI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GATHIYA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FINE SEV 150 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MIXTURE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SOYA STICKS 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RASGULLA 1KG"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BIKANERI MED PAPAD(MM)200 GM"
+      }
+    ],
+    "Invoice_India": [
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 200 G"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 500 G"
+      },
+      {
+        "hsn": "11029020",
+        "product": "RAGI FLOUR 500 G"
+      },
+      {
+        "hsn": "09092200",
+        "product": "DANIYA POWDER - 500 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 200 G"
+      },
+      {
+        "hsn": "13012000",
+        "product": "ASAFOETIDA POWDER 50 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL PAYASAMMIX 175 G"
+      },
+      {
+        "hsn": "21069060",
+        "product": "PANI PURI KIT FAMILY 266 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "GARLIC PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 200 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MANGOTHOKKU PICKLE 200 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI MUTTON MASALA 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI RASAM POWER 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI CURRY MASAL POWDER 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI FISH CURRY MASALA 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI FISH FRY 50G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SAKTHI IDLI CHILLI POWDER 50G"
+      },
+      {
+        "hsn": "09092200",
+        "product": "SAKTHI CORIANDER POWDER 500G"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SAKTHI CHILLI POWDER 500G"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 400 G"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 1 KG"
+      },
+      {
+        "hsn": "21069060",
+        "product": "APPALAM 100G X 200PCS (EACH 15 KGS)"
+      },
+      {
+        "hsn": "21069060",
+        "product": "APPALAM 200G X 75PCS (EACH 15 KGS)"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 100 ML"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 200 ML"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 300G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 300 G"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 300 G"
+      },
+      {
+        "hsn": "08134090",
+        "product": "TAMARIND 500 G"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG"
+      },
+      {
+        "hsn": "04059000",
+        "product": "SATTVAM GHEE  1 LT"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAYASAM MIX 75 G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MAGGI MASALA 66 G"
+      },
+      {
+        "hsn": "10063011",
+        "product": "SEERAGA RICE 1 KG"
+      },
+      {
+        "hsn": "10063011",
+        "product": "BASMATI RICE 1 KG"
+      },
+      {
+        "hsn": "21069060",
+        "product": "POPALAR APPALAM"
+      },
+      {
+        "hsn": "48194090",
+        "product": "GIFT BAGS"
+      },
+      {
+        "hsn": "73239900",
+        "product": "PLATES"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CORNFLAKES MIXTURE STANDY POUCH 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHUJIA SEV 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHELPURI 270 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHARI BOONDI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "NAVRATAN MIX 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALL IN ONE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALOO BHUJIA 200GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHATTA MEETHA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SALTED PEANUTS 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DAL BIJI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOLDEN MIXTURE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MURUKKU (CHAKOLI) 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PUNJABI TADKA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RATLAMI SEV 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAPAD CHAVANU 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PANCHRATAN MIXTURE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI SAMOSA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI BHAKARWADI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOL KACHAURI 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GATHIYA 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FINE SEV 150 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MIXTURE 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SOYA STICKS 200 GM"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RASGULLA 1KG"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BIKANERI MED PAPAD(MM)200 GM"
+      }
+    ],
+    "Invoice_Colombo": [
+      {
+        "hsn": "13012000",
+        "product": "ASAFOETIDA POWDER 50G 120pc"
+      },
+      {
+        "hsn": "19059090",
+        "product": "PANI PURI KIT 133g 20pc"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BADAM DRINK MIX 175g 40pc B1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL GULAB JAMUN 175g 40pcB1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAL ADA PAYASAM 175g 20pc"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL BADAMPAYASAM  175g40pcB1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 200g 40pc B1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 500g 20pc B1G1"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 500GMS"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 200g 30pc B1G1"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 200g 30pc B1G1"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MANGO THOKKU PICKLE 200g30pcB1G1"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 200g 30pc"
+      },
+      {
+        "hsn": "20019000",
+        "product": "GARLIC PICKLE 200g 30pc B1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BREAD HALWA RTE 250g 20pc B1G1"
+      },
+      {
+        "hsn": "21011200",
+        "product": "COFFEE POWDER 1.2G RS.2.00"
+      },
+      {
+        "hsn": "21011200",
+        "product": "COFFEE POWDER 500G"
+      },
+      {
+        "hsn": "11061010",
+        "product": "NAGA GRAM FLOUR 500G (EACH 60PCS )"
+      },
+      {
+        "hsn": "11029020",
+        "product": "NAGA RAGI FLOUR 500G (EACH 60PCS )"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RAJAM SUKKU COFFEE 200GMS"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 72.6G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 70G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 140G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 70G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 420G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "BLACK KAVUNI  - 1KG"
+      },
+      {
+        "hsn": "10082190",
+        "product": "SAMAI - 500G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "KUTHIRAIVAALI - 500G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "VARAGU - 500G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "THINAI - 500G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SCHZWAN CHUNTEY 250G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KRISHNA HEALTH MIX 200G"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 1 LTR"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 1 LTR"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 500ML"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 100ML"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 200ML"
+      },
+      {
+        "hsn": "15149900",
+        "product": "FORTUNE MUSTARD OIL 1 LTR"
+      },
+      {
+        "hsn": "15149900",
+        "product": "FORTUNE MUSTARD OIL 500 ML"
+      },
+      {
+        "hsn": "19059090",
+        "product": "PORI"
+      },
+      {
+        "hsn": "08134010",
+        "product": "DRY FRUIT 500GM"
+      },
+      {
+        "hsn": "19021900",
+        "product": "MTR VELMICELLI 850G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHAAT MASALA -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "PAV BHAJI MASALA ZIPPER -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "PANI PURI -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "TANDOORI CHICKEN MASALA ZIPPER 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "KITCHEN KING MASALA ZIPPER -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "GARAM MASALA ZIPPER -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "PANEER MASALA ZIPPER 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "JALJIRA -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SUPER SAMBHAR 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "KASURI METHI -25G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "BIRYANI MASALA -50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHICKEN 65 KABAB - 50G"
+      },
+      {
+        "hsn": "09042190",
+        "product": "KASHMIRILAL CHILLY- 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHHOLE MASALA ZIPPER - 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SABJI MASALA ZIPPER 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "MEAT MASALA -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "EGG CURRY MASALA -50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "RAJMA MASALA 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHICKEN MASALA"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 1KG"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 500G"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 250G"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SAKTHI CHICKEN MASALA 50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SAKTHI RASAM POWDER 50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SAKTHI CURRY MASAL POWDER 50"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK COCONUT LADDU 80G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BALLS 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK WHITE SESAME BALLS 60G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK COCONUT LADDU 80G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK SLICED PEANUT BURFI 200G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANU BURFI CUTTING 150G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK ENERGY LADDU 140G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK BIRTHDAY PEANUT BURFI BOX 220G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK COCONUT LADDU 80G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BALLS 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI 135 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK SLICED PEANUT BURFI 200 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK ANDHRA MURUKKU 125 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK FINE PEANUT BADAM BURFI 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK MIXTURE 125 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI CUTTING 150G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK WHITE SESAME BALLS 60G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BALLS 60G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK BIRTHDAY PEANUT BURFI BOX 220G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK ENERGY LADDU 140G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALL IN ONE  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALLO BHUJIA  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BANANA CHIPS - BLACKPEPPER 160G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHELPURI 270G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHUJIA SEV  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SOYA STICKS  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "TASTY NUTS  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "YELLOW BANANA CHIPS  ROCKSALT 160G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BIKANERI BHUJIA 150G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KARODPATI BHUJAI 125G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MARWARI BHUJIA 125G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BOONDI BHUJIA 150G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RETORT PANEER MAKHANI 300G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROTORT PANEER TIKKA MASALA 300G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CHANA JOR GARAM  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CHANA NUTS  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CORNFLAKES MIXTURE 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DAL BIJI 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DRY FRUIT MIX 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FARALI CHIWDA  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FATAFAT BHEL 100G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FINE SEV 150G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GATHIYA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOL KACHORI  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOLDEN MIX  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GULAB JAMUN 100G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHARI  BOONDI  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHATTA MEETHA  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "LITE CHIWDA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI BHAKARWADI 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI SAMOSA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MIXTURE 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "NAVRATAN MIX 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PANCHRATAN MIX 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAPAD CHAVANU 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PUNJABI TADKA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RATLAMI SEV 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MURUKKU 200G"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 1 KG"
+      },
+      {
+        "hsn": "19019099",
+        "product": "JUNIOR HORLICKS 500G"
+      },
+      {
+        "hsn": "19019099",
+        "product": "WOMEN HORLICKS 400G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHINGS SCHEZWAN CHUTNEY 590G"
+      }
+    ],
+    "COOTemplate": [
+      {
+        "hsn": "13012000",
+        "product": "ASAFOETIDA POWDER 50G 120pc"
+      },
+      {
+        "hsn": "19059090",
+        "product": "PANI PURI KIT 133g 20pc"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BADAM DRINK MIX 175g 40pc B1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL GULAB JAMUN 175g 40pcB1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAL ADA PAYASAM 175g 20pc"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROYAL BADAMPAYASAM  175g40pcB1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 200g 40pc B1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "HEALTH MIX 500g 20pc B1G1"
+      },
+      {
+        "hsn": "09042190",
+        "product": "SPECIAL CHILLI POWDER - 500GMS"
+      },
+      {
+        "hsn": "20019000",
+        "product": "LEMON PICKLE 200g 30pc B1G1"
+      },
+      {
+        "hsn": "20019000",
+        "product": "CUT MANGO PICKLE 200g 30pc B1G1"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MANGO THOKKU PICKLE 200g30pcB1G1"
+      },
+      {
+        "hsn": "20019000",
+        "product": "MIXED VEG PICKLE 200g 30pc"
+      },
+      {
+        "hsn": "20019000",
+        "product": "GARLIC PICKLE 200g 30pc B1G1"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BREAD HALWA RTE 250g 20pc B1G1"
+      },
+      {
+        "hsn": "21011200",
+        "product": "COFFEE POWDER 1.2G RS.2.00"
+      },
+      {
+        "hsn": "21011200",
+        "product": "COFFEE POWDER 500G"
+      },
+      {
+        "hsn": "11061010",
+        "product": "NAGA GRAM FLOUR 500G (EACH 60PCS )"
+      },
+      {
+        "hsn": "11029020",
+        "product": "NAGA RAGI FLOUR 500G (EACH 60PCS )"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RAJAM SUKKU COFFEE 200GMS"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 72.6G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 70G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 140G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 70G"
+      },
+      {
+        "hsn": "19023000",
+        "product": "NOODLES 420G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "BLACK KAVUNI  - 1KG"
+      },
+      {
+        "hsn": "10082190",
+        "product": "SAMAI - 500G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "KUTHIRAIVAALI - 500G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "VARAGU - 500G"
+      },
+      {
+        "hsn": "10082190",
+        "product": "THINAI - 500G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SCHZWAN CHUNTEY 250G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KRISHNA HEALTH MIX 200G"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 1 LTR"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 1 LTR"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 500ML"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 100ML"
+      },
+      {
+        "hsn": "04059000",
+        "product": "GHEE 200ML"
+      },
+      {
+        "hsn": "15149900",
+        "product": "FORTUNE MUSTARD OIL 1 LTR"
+      },
+      {
+        "hsn": "15149900",
+        "product": "FORTUNE MUSTARD OIL 500 ML"
+      },
+      {
+        "hsn": "19059090",
+        "product": "PORI"
+      },
+      {
+        "hsn": "08134010",
+        "product": "DRY FRUIT 500GM"
+      },
+      {
+        "hsn": "19021900",
+        "product": "MTR VELMICELLI 850G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHAAT MASALA -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "PAV BHAJI MASALA ZIPPER -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "PANI PURI -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "TANDOORI CHICKEN MASALA ZIPPER 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "KITCHEN KING MASALA ZIPPER -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "GARAM MASALA ZIPPER -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "PANEER MASALA ZIPPER 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "JALJIRA -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SUPER SAMBHAR 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "KASURI METHI -25G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "BIRYANI MASALA -50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHICKEN 65 KABAB - 50G"
+      },
+      {
+        "hsn": "09042190",
+        "product": "KASHMIRILAL CHILLY- 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHHOLE MASALA ZIPPER - 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SABJI MASALA ZIPPER 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "MEAT MASALA -100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "EGG CURRY MASALA -50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "RAJMA MASALA 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHICKEN MASALA"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 1KG"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 500G"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 250G"
+      },
+      {
+        "hsn": "04090000",
+        "product": "HONEY 100G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SAKTHI CHICKEN MASALA 50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SAKTHI RASAM POWDER 50G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "SAKTHI CURRY MASAL POWDER 50"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK COCONUT LADDU 80G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BALLS 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK WHITE SESAME BALLS 60G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK COCONUT LADDU 80G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK SLICED PEANUT BURFI 200G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANU BURFI CUTTING 150G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK ENERGY LADDU 140G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK BIRTHDAY PEANUT BURFI BOX 220G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK COCONUT LADDU 80G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BALLS 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI 135 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK SLICED PEANUT BURFI 200 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK ANDHRA MURUKKU 125 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK FINE PEANUT BADAM BURFI 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK MIXTURE 125 G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI 100G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BURFI CUTTING 150G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK WHITE SESAME BALLS 60G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK PEANUT BALLS 60G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK BIRTHDAY PEANUT BURFI BOX 220G"
+      },
+      {
+        "hsn": "17029090",
+        "product": "MANIMARK ENERGY LADDU 140G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALL IN ONE  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ALLO BHUJIA  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BANANA CHIPS - BLACKPEPPER 160G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHELPURI 270G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BHUJIA SEV  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "SOYA STICKS  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "TASTY NUTS  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "YELLOW BANANA CHIPS  ROCKSALT 160G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BIKANERI BHUJIA 150G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KARODPATI BHUJAI 125G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MARWARI BHUJIA 125G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "BOONDI BHUJIA 150G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RETORT PANEER MAKHANI 300G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "ROTORT PANEER TIKKA MASALA 300G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CHANA JOR GARAM  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CHANA NUTS  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "CORNFLAKES MIXTURE 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DAL BIJI 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "DRY FRUIT MIX 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FARALI CHIWDA  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FATAFAT BHEL 100G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "FINE SEV 150G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GATHIYA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOL KACHORI  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GOLDEN MIX  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "GULAB JAMUN 100G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHARI  BOONDI  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "KHATTA MEETHA  200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "LITE CHIWDA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI BHAKARWADI 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MINI SAMOSA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MIXTURE 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "NAVRATAN MIX 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PANCHRATAN MIX 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PAPAD CHAVANU 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "PUNJABI TADKA 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "RATLAMI SEV 200G"
+      },
+      {
+        "hsn": "21069099",
+        "product": "MURUKKU 200G"
+      },
+      {
+        "hsn": "11042200",
+        "product": "OATS 1 KG"
+      },
+      {
+        "hsn": "19019099",
+        "product": "JUNIOR HORLICKS 500G"
+      },
+      {
+        "hsn": "19019099",
+        "product": "WOMEN HORLICKS 400G"
+      },
+      {
+        "hsn": "21039090",
+        "product": "CHINGS SCHEZWAN CHUTNEY 590G"
+      }
+    ]
+  },
+  "master_count": 268
+}
