@@ -75,6 +75,7 @@ export interface TariffSearchResult {
 }
 
 export interface UnifiedProductSearchResult {
+  item_category: string;
   source: 'FAVORITE' | 'TARIFF';
   id?: number;
   tariff_line_id?: number;

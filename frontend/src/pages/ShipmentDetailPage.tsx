@@ -10,6 +10,7 @@ import { parseProductName } from '../utils/productParser';
 import { CustomerSearchInput } from '../components/CustomerSearchInput';
 import { CustomerSelectionTable } from '../components/CustomerSelectionTable';
 import type { CustomerFormData } from '../components/CustomerSearchInput';
+import { VendorAllocationStep } from '../components/VendorAllocationStep';
 
 interface ShipmentDetailPageProps {
   shipmentId: number;
@@ -35,21 +36,18 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
     localStorage.setItem('a3_detail_sidebar_collapsed', String(val));
   };
 
-  const PIPELINE_STEPS = [
-    { id: 'config' as const, stepNo: 1, title: 'Overview & Rates', subtitle: 'Base assumptions & FX', icon: Settings },
-    { id: 'customers' as const, stepNo: 2, title: 'Customer Consignees', subtitle: 'Consignee directory', icon: Users },
-    { id: 'products' as const, stepNo: 3, title: 'Demands & Excel Upload', subtitle: 'Bulk sheets & catalog', icon: Package },
-    { id: 'customer_alloc' as const, stepNo: 4, title: 'Supplier RFQ & Allocation', subtitle: 'Multi-vendor proforma', icon: Users },
-    { id: 'quotations' as const, stepNo: 5, title: 'Duty & Quotations', subtitle: 'Formulas & P_1, P_2 sheets', icon: Calculator },
-    { id: 'documents' as const, stepNo: 6, title: 'Invoices & Export Studio', subtitle: 'Colombo & Indian docs', icon: FileText },
-    { id: 'actuals' as const, stepNo: 7, title: 'Actuals & Settlement', subtitle: 'OCR & realized profit', icon: TrendingUp },
-    { id: 'audit' as const, stepNo: 8, title: 'Audit Trail (Req 15)', subtitle: 'Removal history trail', icon: History },
-  ];
 
   const setActiveTab = (tab: MainTabType) => {
     localStorage.setItem(`a3_shipment_${shipmentId}_main_tab`, tab);
     setActiveTabState(tab);
   };
+
+  const [vendorSubTab, setVendorSubTab] = useState<
+    'allocation' | 'proforma' | 'quotation' | 'payments' | 'audit' | 'packing_lists'
+  >(() => {
+    const saved = localStorage.getItem(`a3_shipment_${shipmentId}_sub_tab`);
+    return (saved as any) || 'allocation';
+  });
   const [selectedQuotCustId, setSelectedQuotCustId] = useState<number | null>(null);
 
   // Excel Upload state
@@ -650,235 +648,232 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
   const totalPredictedRevenue = shipment.products.reduce((acc, p) => acc + ((p.final_quotation_price || 0) * p.quantity), 0);
   const totalPredictedProfit = totalPredictedRevenue - totalPredictedCost;
 
-  const currentStepIndex = PIPELINE_STEPS.findIndex(s => s.id === activeTab);
-  const currentStep = PIPELINE_STEPS[currentStepIndex] || PIPELINE_STEPS[0];
-  const goToStep = (index: number) => {
-    if (index >= 0 && index < PIPELINE_STEPS.length) {
-      setActiveTab(PIPELINE_STEPS[index].id);
+  const PIPELINE_STEPS = [
+    { id: 'config' as const, stepNo: 1, title: '1. Overview & Rates', subtitle: 'Base assumptions & FX', icon: Settings },
+    { id: 'customers' as const, stepNo: 2, title: '2. Customer Consignees', subtitle: 'Consignee directory', icon: Users, badge: shipment?.customers?.length || 0 },
+    { id: 'customer_alloc' as const, stepNo: 4, title: '4. Vendor Process', subtitle: '6-step supplier workflow', icon: Users },
+    { id: 'products' as const, stepNo: 5, title: '5. Products & Excel Bulk Upload', subtitle: 'Bulk sheets & catalog', icon: Package, badge: shipment?.products?.filter(p => p.is_active !== false).length || 0 },
+    { id: 'quotations' as const, stepNo: 6, title: '6. Duty & Quotations', subtitle: 'Formulas & P_1, P_2 sheets', icon: Calculator },
+    { id: 'documents' as const, stepNo: 7, title: '7. Invoices & Export Studio', subtitle: 'Colombo & Indian docs', icon: FileText },
+    { id: 'actuals' as const, stepNo: 8, title: '8. Actuals & Settlement', subtitle: 'OCR & realized profit', icon: TrendingUp },
+    { id: 'audit' as const, stepNo: 9, title: '9. Audit Trail (Req 15)', subtitle: 'Removal history trail', icon: History },
+  ];
+
+  const VENDOR_SUB_STEPS = [
+    { id: 'allocation' as const, subNo: '4.1', label: '4.1 Requirement Allocation' },
+    { id: 'proforma' as const, subNo: '4.2', label: '4.2 Vendor Proforma Invoice (PI)' },
+    { id: 'quotation' as const, subNo: '4.3', label: '4.3 Preliminary Quotation' },
+    { id: 'payments' as const, subNo: '4.4', label: '4.4 Advance & TT Payments' },
+    { id: 'audit' as const, subNo: '4.5', label: '4.5 Actual Invoice Comparison' },
+    { id: 'packing_lists' as const, subNo: '4.6', label: '4.6 Continuous Packing Lists' },
+  ];
+
+  const flatSteps = [
+    { tab: 'config', subTab: null, label: '1. Overview & Rates' },
+    { tab: 'customers', subTab: null, label: '2. Customer Consignees' },
+    { tab: 'customer_alloc', subTab: 'allocation', label: '4.1 Requirement Allocation' },
+    { tab: 'customer_alloc', subTab: 'proforma', label: '4.2 Vendor Proforma Invoice (PI)' },
+    { tab: 'customer_alloc', subTab: 'quotation', label: '4.3 Preliminary Quotation' },
+    { tab: 'customer_alloc', subTab: 'payments', label: '4.4 Advance & TT Payments' },
+    { tab: 'customer_alloc', subTab: 'audit', label: '4.5 Actual Invoice Comparison' },
+    { tab: 'customer_alloc', subTab: 'packing_lists', label: '4.6 Continuous Packing Lists' },
+    { tab: 'products', subTab: null, label: '5. Products & Excel Bulk Upload' },
+    { tab: 'quotations', subTab: null, label: '6. Duty & Quotations' },
+    { tab: 'documents', subTab: null, label: '7. Invoices & Export Studio' },
+    { tab: 'actuals', subTab: null, label: '8. Actuals & Settlement' },
+    { tab: 'audit', subTab: null, label: '9. Audit Trail (Req 15)' },
+  ];
+
+  const currentFlatIndex = flatSteps.findIndex(s => {
+    if (s.tab === 'customer_alloc' && activeTab === 'customer_alloc') {
+      return s.subTab === vendorSubTab;
+    }
+    return s.tab === activeTab;
+  });
+
+  const handlePrevStep = () => {
+    if (currentFlatIndex > 0) {
+      const prev = flatSteps[currentFlatIndex - 1];
+      setActiveTab(prev.tab as MainTabType);
+      if (prev.subTab) {
+        setVendorSubTab(prev.subTab as any);
+        localStorage.setItem(`a3_shipment_${shipmentId}_sub_tab`, prev.subTab);
+      }
+    }
+  };
+
+  const handleNextStep = () => {
+    if (currentFlatIndex >= 0 && currentFlatIndex < flatSteps.length - 1) {
+      const next = flatSteps[currentFlatIndex + 1];
+      setActiveTab(next.tab as MainTabType);
+      if (next.subTab) {
+        setVendorSubTab(next.subTab as any);
+        localStorage.setItem(`a3_shipment_${shipmentId}_sub_tab`, next.subTab);
+      }
     }
   };
 
   return (
-    <div className="flex bg-[#F4F5F7] min-h-[calc(100vh-56px)] font-sans">
-      {/* Atlassian Left Navigation Rail / Pipeline Sidebar */}
+    <div className="bg-[#F4F5F7] min-h-[calc(100vh-56px)] font-sans flex w-full">
+      {/* Left Sidebar */}
       <aside
-        className={`bg-[#FAFBFC] border-r border-[#DFE1E6] shrink-0 transition-all duration-200 flex flex-col justify-between select-none ${
-          isSidebarCollapsed ? 'w-16' : 'w-72'
+        className={`bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-200 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto custom-scrollbar z-20 ${
+          isSidebarCollapsed ? 'w-16' : 'w-72 sm:w-80'
         }`}
       >
-        {/* Top: Shipment Header & Pipeline Navigation */}
-        <div>
-          {/* Shipment Identification Card */}
-          <div className="p-3.5 border-b border-[#DFE1E6] bg-white">
-            {!isSidebarCollapsed ? (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <button
-                    onClick={onBack}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-[#0C66E4] cursor-pointer transition-colors"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>All Shipments</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleSidebar(true)}
-                    className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
-                    title="Collapse sidebar"
-                  >
-                    <PanelLeftClose className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-mono font-black text-base text-[#091E42] truncate" title={shipment.shipment_no}>
-                    {shipment.shipment_no}
-                  </h2>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide border shrink-0 ${
-                    shipment.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                    shipment.status === 'SHIPPED' ? 'bg-blue-50 text-blue-700 border-blue-300' :
-                    shipment.status === 'CONFIGURED' ? 'bg-amber-50 text-amber-800 border-amber-300' :
-                    'bg-slate-100 text-slate-700 border-slate-300'
-                  }`}>
-                    {shipment.status}
-                  </span>
-                </div>
-
-                <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
-                  <div className="truncate">
-                    FY: <strong className="text-slate-800 font-semibold">{shipment.financial_year}</strong> &bull; Currency: <strong className="text-slate-800 font-semibold">{shipment.currency || 'INR'}</strong>
-                  </div>
-                  <div className="truncate" title={shipment.destination}>
-                    Port: <span className="text-slate-700 font-medium">{shipment.destination || 'Colombo Port'}</span>
-                  </div>
-                </div>
-
-                {/* Margin quick badges */}
-                <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500 font-medium">Margins (Cell B11):</span>
-                  <span className="font-mono font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                    IN: {shipment.indian_invoice_margin_pct ?? 15}% | LK: {shipment.colombo_invoice_margin_pct ?? 15}%
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleSidebar(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-[#0C66E4] hover:bg-slate-100 cursor-pointer"
-                  title="Expand sidebar"
-                >
-                  <PanelLeft className="w-4 h-4" />
-                </button>
-                <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#0C66E4] border border-blue-200 flex items-center justify-center font-mono font-black text-xs">
-                  {shipment.shipment_no.split('/').pop() || 'AEC'}
-                </div>
-              </div>
-            )}
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-slate-200 space-y-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>All Shipments</span>
+            </button>
+            <button
+              onClick={() => toggleSidebar(!isSidebarCollapsed)}
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
           </div>
 
-          {/* Section Label */}
           {!isSidebarCollapsed && (
-            <div className="px-4 pt-3.5 pb-1 text-[10px] font-extrabold tracking-wider uppercase text-slate-400">
-              Shipment Pipeline
-            </div>
-          )}
+            <>
+              {/* Shipment Info */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-extrabold text-slate-900 font-mono tracking-tight">
+                    {shipment.shipment_no}
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-300">
+                    {shipment.status || 'DRAFT'}
+                  </span>
+                </div>
+                <p className="text-[11px] font-medium text-slate-500">
+                  FY: {shipment.shipment_no?.split('/')?.[2] || '2026-27'} &bull; Currency: {shipment.currency || 'INR'}
+                </p>
+                <p className="text-[11px] font-medium text-slate-500">
+                  Port: {shipment.destination || 'Colombo Port, Sri Lanka'}
+                </p>
+              </div>
 
-          {/* Pipeline Steps Nav */}
-          <nav className="p-2 space-y-1">
+              {/* Margins Row */}
+              <div className="flex items-center gap-1.5 text-[11px] pt-1">
+                <span className="text-slate-400 font-medium">Margins (Cell B11):</span>
+                <div className="flex items-center gap-1 font-mono text-[11px]">
+                  <span className="bg-[#FFC000] text-amber-950 px-1.5 py-0.5 rounded font-bold">
+                    IN: {Number(shipment.indian_invoice_margin_pct ?? 15).toFixed(4)}%
+                  </span>
+                  <span className="text-amber-400 font-bold">|</span>
+                  <span className="bg-[#FFC000] text-amber-950 px-1.5 py-0.5 rounded font-bold">
+                    LK: {Number(shipment.colombo_invoice_margin_pct ?? 15).toFixed(4)}%
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Pipeline Navigation */}
+        {!isSidebarCollapsed && (
+          <div className="p-3 space-y-1 flex-1">
+            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2 py-1.5">
+              SHIPMENT PIPELINE
+            </div>
+
             {PIPELINE_STEPS.map((step) => {
               const Icon = step.icon;
               const isActive = activeTab === step.id;
 
-              let countBadge: React.ReactNode = null;
-              if (step.id === 'customers') {
-                countBadge = (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-blue-200 text-blue-800' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {shipment.customers.length}
-                  </span>
-                );
-              } else if (step.id === 'products') {
-                countBadge = (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-blue-200 text-blue-800' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {shipment.products.length}
-                  </span>
-                );
-              }
-
               return (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => setActiveTab(step.id)}
-                  title={isSidebarCollapsed ? `${step.stepNo}. ${step.title}` : undefined}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left cursor-pointer ${
-                    isActive
-                      ? 'bg-[#E9F2FF] text-[#0C66E4] font-bold shadow-2xs border-l-3 border-[#0C66E4]'
-                      : 'text-slate-700 hover:bg-[#EBECF0] font-medium'
-                  } ${isSidebarCollapsed ? 'justify-center px-2' : ''}`}
-                >
-                  <div className={`flex items-center justify-center shrink-0 ${
-                    isActive ? 'text-[#0C66E4]' : 'text-slate-500'
-                  }`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
+                <div key={step.id} className="space-y-1">
+                  <button
+                    onClick={() => setActiveTab(step.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-50/90 text-[#0C66E4] font-bold border-l-4 border-[#0C66E4] rounded-l-none'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-semibold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0C66E4]' : 'text-slate-400'}`} />
+                      <span className="truncate">{step.title}</span>
+                    </div>
+                    {step.badge !== undefined && step.badge > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-slate-200/80 text-slate-700 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                        {step.badge}
+                      </span>
+                    )}
+                  </button>
 
-                  {!isSidebarCollapsed && (
-                    <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
-                      <div className="truncate">
-                        <span className="text-slate-400 font-mono mr-1.5">{step.stepNo}.</span>
-                        <span className="truncate">{step.title}</span>
-                      </div>
-                      {countBadge}
+                  {/* Render Sub-Steps for Step 4 (Vendor Process) - Always open */}
+                  {step.id === 'customer_alloc' && (
+                    <div className="pl-6 space-y-0.5 border-l-2 border-blue-100 ml-5 my-1">
+                      {VENDOR_SUB_STEPS.map((sub) => {
+                        const isSubActive = activeTab === 'customer_alloc' && vendorSubTab === sub.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            onClick={() => {
+                              setActiveTab('customer_alloc');
+                              setVendorSubTab(sub.id as any);
+                              localStorage.setItem(`a3_shipment_${shipmentId}_sub_tab`, sub.id);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                              isSubActive
+                                ? 'bg-blue-100/80 text-[#0C66E4] font-bold shadow-2xs'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                            }`}
+                          >
+                            {sub.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
-          </nav>
-        </div>
-
-        {/* Bottom Sidebar Financial Summary (if expanded) */}
-        {!isSidebarCollapsed ? (
-          <div className="p-3 border-t border-[#DFE1E6] bg-white space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Estimated Metrics
-            </div>
-            <div className="space-y-1.5 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Est. Duty:</span>
-                <span className="font-mono font-semibold text-slate-800">
-                  LKR {totalPredictedDuty.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Est. Revenue:</span>
-                <span className="font-mono font-semibold text-blue-700">
-                  LKR {totalPredictedRevenue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-              <div className="flex justify-between items-center border-t border-slate-100 pt-1">
-                <span className="text-slate-500">Est. Profit:</span>
-                <span className={`font-mono font-bold ${totalPredictedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  LKR {totalPredictedProfit.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="p-2 border-t border-[#DFE1E6] flex justify-center bg-white">
-            <button
-              type="button"
-              onClick={() => toggleSidebar(false)}
-              className="p-1.5 rounded text-slate-500 hover:bg-slate-100 cursor-pointer"
-              title="Expand sidebar"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
         )}
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
-        {/* Top Breadcrumb & Step Navigation Bar */}
-        <div className="bg-white border-b border-slate-200 px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-10">
-          <div className="flex items-center gap-2 text-xs">
-            <button
-              onClick={onBack}
-              className="text-slate-500 hover:text-blue-600 font-medium cursor-pointer transition-colors"
-            >
-              Shipments
-            </button>
-            <span className="text-slate-300">/</span>
-            <span className="font-mono font-bold text-slate-800">{shipment.shipment_no}</span>
-            <span className="text-slate-300">/</span>
-            <span className="font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-              Step {currentStep.stepNo}: {currentStep.title}
+      {/* Right Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#F4F5F7]">
+        {/* Top Header / Breadcrumb Bar */}
+        <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-14 z-10 shadow-2xs flex-wrap gap-3">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <span>Shipments</span>
+            <span>/</span>
+            <span className="font-bold text-slate-800">{shipment.shipment_no}</span>
+            <span>/</span>
+            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-md font-bold text-xs">
+              {activeTab === 'customer_alloc'
+                ? `Step 4: ${VENDOR_SUB_STEPS.find(s => s.id === vendorSubTab)?.label || 'Vendor Process'}`
+                : PIPELINE_STEPS.find(s => s.id === activeTab)?.title || 'Step Details'
+              }
             </span>
           </div>
 
+          {/* Top Actions: Prev/Next & Full Workbook */}
           <div className="flex items-center gap-2">
             <button
-              type="button"
-              disabled={currentStepIndex === 0}
-              onClick={() => goToStep(currentStepIndex - 1)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1 transition-colors"
+              onClick={handlePrevStep}
+              disabled={currentFlatIndex <= 0}
+              className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>Prev Step</span>
             </button>
 
             <button
-              type="button"
-              disabled={currentStepIndex === PIPELINE_STEPS.length - 1}
-              onClick={() => goToStep(currentStepIndex + 1)}
-              className="px-3.5 py-1.5 rounded-lg bg-[#0C66E4] hover:bg-blue-700 text-white text-xs font-bold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1 transition-colors"
+              onClick={handleNextStep}
+              disabled={currentFlatIndex >= flatSteps.length - 1}
+              className="inline-flex items-center gap-1 px-4 py-1.5 bg-[#0C66E4] hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
               <span>Next Step</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -888,17 +883,16 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
               href={apiClient.getFullWorkbookExcelUrl(shipment.id)}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs ml-1"
-              title="Download entire 11-sheet workbook"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden md:inline">Full Workbook (.xlsx)</span>
+              <Download className="w-3.5 h-3.5" />
+              <span>Full Workbook (.xlsx)</span>
             </a>
           </div>
-        </div>
+        </header>
 
-        {/* Inner Scrollable Workspace Canvas */}
-        <div className="p-6 space-y-6 flex-1 max-w-7xl w-full mx-auto">
+        {/* Main Workspace Body */}
+        <main className="p-6 space-y-6 flex-1 max-w-7xl w-full mx-auto overflow-y-auto">
           {/* Step 1: Configuration & Assumptions */}
           {activeTab === 'config' && (
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
@@ -1150,11 +1144,11 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
                   type="button"
                   onClick={async () => {
                     await handleSaveManagedCustomers();
-                    setActiveTab('products');
+                    setActiveTab('customer_alloc');
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  <span>Save & Continue to Step 3: Demands</span>
+                  <span>Save & Continue to Step 4: Vendor Process</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -1178,7 +1172,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
           >
             <div className="text-center">
               <UploadCloud className="w-9 h-9 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-bold text-slate-800 text-sm">Step 4 & 5 Priority: Bulk Upload Excel Product Sheet</h3>
+              <h3 className="font-bold text-slate-800 text-sm">Step 5: Products & Excel Bulk Upload (Bulk Import & Catalog)</h3>
               <p className="text-xs text-slate-500 mt-1 mb-4">
                 Upload your Excel file (.xlsx / .csv) to automatically import items, match tariff codes, and calculate duty formulas.
               </p>
@@ -1560,132 +1554,14 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
             </div>
           )}
 
-          {/* Step 3 Footer Navigation */}
+          {/* Step 5 Footer Navigation */}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab('customers')}
-              className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer"
-            >
-              ← Step 2: Customer Consignees
-            </button>
-
             <button
               type="button"
               onClick={() => setActiveTab('customer_alloc')}
-              className="px-4 py-2 bg-[#0C66E4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <span>Continue to Step 4: Supplier RFQ & Allocation</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Customer-wise Separation */}
-      {activeTab === 'customer_alloc' && (
-        <div className="space-y-6">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Customer Allocation & Management</h2>
-              <p className="text-xs text-slate-500">Add, edit, or separate products by customer for Shipment {shipment.shipment_no}.</p>
-            </div>
-            <button
-              type="button"
-              onClick={openCustomerManageModal}
-              className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
-            >
-              <Users className="w-4 h-4" />
-              <span>+ Add / Edit Shipment Customers</span>
-            </button>
-          </div>
-
-          {shipment.customers.length === 0 ? (
-            <div className="bg-white p-8 rounded-xl border border-slate-200 text-center space-y-3">
-              <Users className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-base font-bold text-slate-800">No Customers Assigned Yet</h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                This shipment has 0 assigned customers. Click below to add customer details (Name, Address, Phone, Email) to this shipment.
-              </p>
-              <button
-                type="button"
-                onClick={openCustomerManageModal}
-                className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 cursor-pointer shadow-xs"
-              >
-                + Add Customer to Shipment
-              </button>
-            </div>
-          ) : Object.keys(customerProductsMap).length === 0 ? (
-            <div className="bg-white p-6 rounded-xl border border-slate-200 text-slate-500 text-sm flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-slate-700">Assigned Customers:</span> {shipment.customers.map(c => c.name).join(', ')}
-                <p className="text-xs text-slate-400 mt-0.5">No products allocated to these customers yet. Use Tab 1 to add products.</p>
-              </div>
-              <button
-                type="button"
-                onClick={openCustomerManageModal}
-                className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
-              >
-                Edit Customer Details
-              </button>
-            </div>
-          ) : (
-            Object.entries(customerProductsMap).map(([cId, prods]) => {
-              const custObj = allCustomers.find(c => c.id === parseInt(cId));
-              const custTotalLkr = prods.reduce((acc, p) => acc + ((p.final_quotation_price || 0) * p.quantity), 0);
-
-              return (
-                <div key={cId} className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <div>
-                      <span className="font-mono text-xs font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-200">
-                        {custObj?.code || 'CUST'}
-                      </span>
-                      <h3 className="text-lg font-bold text-slate-800 mt-1">{custObj?.name || 'Customer'}</h3>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs text-slate-400">Total Customer Order Value</span>
-                      <div className="text-lg font-mono font-bold text-blue-900">LKR {custTotalLkr.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    </div>
-                  </div>
-
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-semibold">
-                        <th className="p-2.5">Product Name</th>
-                        <th className="p-2.5">HSN Code</th>
-                        <th className="p-2.5 text-right">Quantity</th>
-                        <th className="p-2.5 text-right">Total Duty (LKR)</th>
-                        <th className="p-2.5 text-right">Total Cost (LKR)</th>
-                        <th className="p-2.5 text-right">Quoted Price (LKR)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {prods.map(p => (
-                        <tr key={p.id}>
-                          <td className="p-2.5 font-bold text-slate-800">{p.product_name}</td>
-                          <td className="p-2.5 font-mono text-blue-700">{p.hsn_code || '-'}</td>
-                          <td className="p-2.5 text-right font-semibold">{p.quantity} {p.unit}</td>
-                          <td className="p-2.5 text-right font-mono">LKR {((p.calculated_duty_lkr || 0) * p.quantity).toLocaleString()}</td>
-                          <td className="p-2.5 text-right font-mono">LKR {((p.total_cost_lkr || 0) * p.quantity).toLocaleString()}</td>
-                          <td className="p-2.5 text-right font-mono font-bold text-emerald-700">LKR {p.final_quotation_price}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })
-          )}
-
-          {/* Step 4 Footer Navigation */}
-          <div className="flex justify-between items-center pt-4 border-t border-slate-100 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab('products')}
               className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer"
             >
-              ← Step 3: Demands & Excel Ingest
+              ← Step 4: Vendor Process
             </button>
 
             <button
@@ -1693,11 +1569,26 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
               onClick={() => setActiveTab('quotations')}
               className="px-4 py-2 bg-[#0C66E4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
             >
-              <span>Continue to Step 5: Duty & Quotations</span>
+              <span>Proceed to Step 6: Duty & Quotations</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
+
           </div>
         </div>
+      )}
+
+      {/* Step 4: Vendor Process Breakdown */}
+      {activeTab === 'customer_alloc' && (
+        <VendorAllocationStep
+          shipmentId={shipment.id}
+          activeSubTab={vendorSubTab}
+          onSubTabChange={(tab) => {
+            setVendorSubTab(tab);
+            localStorage.setItem(`a3_shipment_${shipment.id}_sub_tab`, tab);
+          }}
+          onFinish={() => setActiveTab('products')}
+          onBack={() => setActiveTab('customers')}
+        />
       )}
 
       {/* Tab: Customer Quotations (P_1, P_2 Sheets Breakdown) */}
@@ -1871,14 +1762,14 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
             );
           })()}
 
-          {/* Step 5 Footer Navigation */}
+          {/* Step 6 Footer Navigation */}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
             <button
               type="button"
-              onClick={() => setActiveTab('customer_alloc')}
+              onClick={() => setActiveTab('products')}
               className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer"
             >
-              ← Step 4: Supplier RFQ & Allocation
+              ← Step 5: Products & Excel Bulk Upload
             </button>
 
             <button
@@ -1886,7 +1777,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
               onClick={() => setActiveTab('documents')}
               className="px-4 py-2 bg-[#0C66E4] hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
             >
-              <span>Continue to Step 6: Invoices & Export Studio</span>
+              <span>Continue to Step 7: Invoices & Export Studio</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1900,7 +1791,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="font-bold text-slate-800 text-lg">Step 9: Interactive Suggested Price Adjustment</h3>
+                <h3 className="font-bold text-slate-800 text-lg">Interactive Suggested Price Adjustment</h3>
                 <p className="text-xs text-slate-500">Modify quoted price per item before generating official Customer Quotations.</p>
               </div>
             </div>
@@ -2392,7 +2283,6 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
           </div>
         </div>
       )}
-        </div>
       </main>
 
       {/* Manual Product Add/Edit Modal */}
@@ -2902,6 +2792,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -27,6 +27,8 @@ import {
   Calculator
 } from 'lucide-react';
 import { apiClient } from '../api/client';
+import { ProductSearchSelect } from './ProductSearchSelect';
+import type { ProductOption } from './ProductSearchSelect';
 import type {
   ShipmentCustomerRequirement,
   Vendor,
@@ -38,6 +40,8 @@ import type {
 interface VendorAllocationStepProps {
   shipmentId: number;
   initialTab?: 'allocation' | 'proforma' | 'quotation' | 'payments' | 'audit' | 'packing_lists';
+  activeSubTab?: 'allocation' | 'proforma' | 'quotation' | 'payments' | 'audit' | 'packing_lists';
+  onSubTabChange?: (tab: 'allocation' | 'proforma' | 'quotation' | 'payments' | 'audit' | 'packing_lists') => void;
   onFinish: () => void;
   onBack?: () => void;
 }
@@ -45,6 +49,8 @@ interface VendorAllocationStepProps {
 export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
   shipmentId,
   initialTab,
+  activeSubTab,
+  onSubTabChange,
   onFinish,
   onBack
 }) => {
@@ -57,6 +63,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
   const [converting, setConverting] = useState<boolean>(false);
   type TabType = 'allocation' | 'proforma' | 'quotation' | 'payments' | 'audit' | 'packing_lists';
   const [activeTab, setActiveTabState] = useState<TabType>(() => {
+    if (activeSubTab) return activeSubTab;
     if (initialTab) return initialTab;
     const saved = localStorage.getItem(`a3_shipment_${shipmentId}_sub_tab`);
     return (saved as TabType) || 'allocation';
@@ -65,7 +72,27 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
   const setActiveTab = (tab: TabType) => {
     localStorage.setItem(`a3_shipment_${shipmentId}_sub_tab`, tab);
     setActiveTabState(tab);
+    if (onSubTabChange) onSubTabChange(tab);
   };
+
+  useEffect(() => {
+    if (activeSubTab && activeSubTab !== activeTab) {
+      setActiveTabState(activeSubTab);
+      if (activeSubTab === 'quotation') loadPreliminaryQuotation();
+    }
+  }, [activeSubTab]);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem(`a3_shipment_${shipmentId}_sub_tab`) as TabType;
+      if (saved && saved !== activeTab) {
+        setActiveTabState(saved);
+        if (saved === 'quotation') loadPreliminaryQuotation();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [shipmentId, activeTab]);
 
   // Preliminary Quotation & Customer Approval State
   const [quotationItems, setQuotationItems] = useState<any[]>([]);
@@ -191,6 +218,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
     currency: 'INR',
     notes: ''
   });
+
 
   // Requirement 18: Vendor Payment State
   const [paymentSummaryList, setPaymentSummaryList] = useState<any[]>([]);
@@ -377,36 +405,53 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
   const fetchData = async () => {
     try {
       setLoading(true);
-      const reqs = await apiClient.getCustomerRequirements(shipmentId);
+      const [reqs, vends, allocs, pis] = await Promise.all([
+        apiClient.getCustomerRequirements(shipmentId).catch(() => []),
+        apiClient.getVendors().catch(() => []),
+        apiClient.getVendorAllocations(shipmentId).catch(() => []),
+        apiClient.getVendorProformaItems(shipmentId).catch(() => [])
+      ]);
+
       setRequirements(reqs);
-
-      const vends = await apiClient.getVendors();
       setVendors(vends);
-      if (vends.length > 0 && selectedVendorIds.length === 0) setSelectedVendorIds([vends[0].id]);
-
-      const allocs = await apiClient.getVendorAllocations(shipmentId);
       setAllocations(allocs);
-
-      const pis = await apiClient.getVendorProformaItems(shipmentId);
       setProformaItems(pis);
 
-      // Fetch auto-matched vendors for each customer requirement
-      const matches: Record<number, VendorProductMatchResponse> = {};
-      for (const r of reqs) {
-        try {
-          const matchRes = await apiClient.getMatchingVendorsForProduct(r.product_name);
-          matches[r.id] = matchRes;
-        } catch (mErr) {
-          console.error(`Failed to match vendor for product ${r.product_name}:`, mErr);
-        }
+      if (vends.length > 0 && selectedVendorIds.length === 0) {
+        setSelectedVendorIds([vends[0].id]);
       }
-      setProductMatchMap(matches);
+      if (reqs.length > 0 && !selectedReqId) {
+        setSelectedReqId(reqs[0].id);
+      }
+
+      // Fetch auto-matched vendors for all requirements in parallel
+      if (reqs.length > 0) {
+        const matchesArray = await Promise.all(
+          reqs.map(async (r) => {
+            try {
+              const matchRes = await apiClient.getMatchingVendorsForProduct(r.product_name);
+              return { id: r.id, matchRes };
+            } catch (mErr) {
+              return { id: r.id, matchRes: null };
+            }
+          })
+        );
+
+        const matches: Record<number, VendorProductMatchResponse> = {};
+        for (const item of matchesArray) {
+          if (item.matchRes) {
+            matches[item.id] = item.matchRes;
+          }
+        }
+        setProductMatchMap(matches);
+      }
     } catch (err) {
       console.error('Failed to load vendor allocation data:', err);
     } finally {
       setLoading(false);
     }
   };
+
 
   const loadPreliminaryQuotation = async () => {
     try {
@@ -791,6 +836,40 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
   void applyPackingPreset;
   void openModalForRequirement;
 
+  const subTabs: TabType[] = ['allocation', 'proforma', 'quotation', 'payments', 'audit', 'packing_lists'];
+  const currentSubIndex = subTabs.indexOf(activeTab);
+
+  const subTabLabels: Record<TabType, string> = {
+    allocation: '4.1 Requirement Allocation',
+    proforma: '4.2 Vendor Proforma Invoice (PI)',
+    quotation: '4.3 Preliminary Quotation & Approval',
+    payments: '4.4 Advance & TT Payments',
+    audit: '4.5 Actual Invoice Comparison',
+    packing_lists: '4.6 Continuous Packing Lists',
+  };
+
+  const goToNextSubStep = () => {
+    if (currentSubIndex < subTabs.length - 1) {
+      const nextTab = subTabs[currentSubIndex + 1];
+      setActiveTab(nextTab);
+      if (nextTab === 'quotation') loadPreliminaryQuotation();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (onFinish) {
+      onFinish();
+    }
+  };
+
+  const goToPrevSubStep = () => {
+    if (currentSubIndex > 0) {
+      const prevTab = subTabs[currentSubIndex - 1];
+      setActiveTab(prevTab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (onBack) {
+      onBack();
+    }
+  };
+
+
   return (
     <div className="space-y-6 font-sans">
       {/* Stage 2 Main Header */}
@@ -819,119 +898,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
         </div>
       </div>
 
-      {/* Sub-Navigation Tab Bar */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-1.5 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('allocation')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'allocation'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>1. Supplier Allocation & RFQ</span>
-          {allocations.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'allocation' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-800'}`}>
-              {allocations.length}
-            </span>
-          )}
-        </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('proforma')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'proforma'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          <span>2. Proforma Invoices & Packing</span>
-          {proformaItems.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'proforma' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
-              {proformaItems.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('quotation');
-            loadPreliminaryQuotation();
-          }}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'quotation'
-              ? 'bg-amber-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>3. Preliminary Quotation & Customer Approval</span>
-          {quotationItems.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'quotation' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'}`}>
-              {quotationItems.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('payments')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'payments'
-              ? 'bg-purple-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>4. Vendor Payments</span>
-          {paymentSummaryList.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'payments' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-800'}`}>
-              {paymentSummaryList.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('audit')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'audit'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <FileCheck className="w-4 h-4" />
-          <span>4. Actual Invoice Audit</span>
-          {actualComparisonList.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'audit' ? 'bg-indigo-500 text-white' : 'bg-indigo-100 text-indigo-800'}`}>
-              {actualComparisonList.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('packing_lists')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'packing_lists'
-              ? 'bg-teal-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <PackageCheck className="w-4 h-4" />
-          <span>5. Continuous Packing Lists</span>
-          {packingListRecords.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'packing_lists' ? 'bg-teal-500 text-white' : 'bg-teal-100 text-teal-800'}`}>
-              {packingListRecords.length}
-            </span>
-          )}
-        </button>
-      </div>
 
       {/* TAB 1: Supplier Allocation & RFQ */}
       {activeTab === 'allocation' && (
@@ -1102,7 +1069,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                           className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          <span>+ Allocate / Multi-Vendor RFQ</span>
+                          <span>Allocate / Multi-Vendor RFQ</span>
                         </button>
                       </div>
                     </div>
@@ -2430,7 +2397,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                     <span>
                       {selectedVendorIds.length === 0
                         ? 'Select Vendors'
-                        : `Save & Send RFQ (${selectedVendorIds.length} Vendors)`}
+                        : `Save & Send RFQ (${selectedVendorIds.length} ${selectedVendorIds.length === 1 ? 'Vendor' : 'Vendors'})`}
                     </span>
                   </button>
                 </div>
@@ -2494,22 +2461,25 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Product Name *</label>
-                  <input
-                    type="text"
-                    required
-                    list="pi-req-products"
+
+                  <ProductSearchSelect
+                    label="Product Name"
                     value={piForm.product_name}
-                    onChange={e => handleProductChangeInPiForm(e.target.value)}
-                    placeholder="e.g. Ragi Grain / Maida Flour..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white"
+                    onChange={(val) => handleProductChangeInPiForm(val)}
+                    onSelectProduct={(opt: ProductOption) => {
+                      handleProductChangeInPiForm(opt.item_name);
+                      if (opt.hs_code) {
+                        updatePiFormField('hs_code', opt.hs_code);
+                      }
+                      if (opt.unit) {
+                        updatePiFormField('unit', opt.unit);
+                      }
+                    }}
+                    required
+                    placeholder="Search product name, HSN code, or category..."
                   />
-                  <datalist id="pi-req-products">
-                    {requirements.map(r => (
-                      <option key={r.id} value={r.product_name} />
-                    ))}
-                  </datalist>
                 </div>
+
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -3215,6 +3185,31 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
           </div>
         </div>
       )}
+      {/* Sub-Step Footer Navigation Bar */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-xs mt-6">
+        <button
+          type="button"
+          onClick={goToPrevSubStep}
+          className="px-4 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
+          <span>{currentSubIndex === 0 ? 'Step 3: Demands & Excel Upload' : `Prev: ${subTabLabels[subTabs[currentSubIndex - 1]]}`}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={goToNextSubStep}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-2 cursor-pointer transition-all"
+        >
+          <span>
+            {currentSubIndex === subTabs.length - 1
+              ? 'Continue to Step 5: Duty & Quotations'
+              : `Next: ${subTabLabels[subTabs[currentSubIndex + 1]]}`}
+          </span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 };
+

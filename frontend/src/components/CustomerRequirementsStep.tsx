@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, History, Edit3, Trash2, CheckCircle2, FileSpreadsheet, Package, AlertCircle, Clock, ArrowLeft, X, Download } from 'lucide-react';
 import { apiClient } from '../api/client';
 import type { ShipmentCustomerRequirement, CustomerRequirementHistory, Customer, UnifiedProductSearchResult } from '../types';
+import { ProductSearchSelect } from './ProductSearchSelect';
+import type { ProductOption } from './ProductSearchSelect';
 
 interface CustomerRequirementsStepProps {
   shipmentId: number;
@@ -560,90 +562,25 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
                       )}
                     </div>
 
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                        <span>Product / SKU Name <span className="text-rose-500">*</span></span>
-                        <span className="text-[10px] text-blue-600 font-bold">⚡ Database Autocomplete</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          value={row.product_name}
-                          onFocus={() => setActiveRowId(row.id)}
-                          onChange={e => {
-                            const val = e.target.value;
-                            handleRowChange(row.id, 'product_name', val);
-                            setActiveRowId(row.id);
-                            autoDetectHsn(row.id, val);
-                          }}
-                          placeholder="Type letter by letter (e.g. Ragi, Maida, Atta)..."
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-2xs pr-8"
-                        />
-                        {row.product_name && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleRowChange(row.id, 'product_name', '');
-                              handleRowChange(row.id, 'hsn_code', '');
-                              setActiveRowId(row.id);
-                            }}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Autocomplete Dropdown per Row */}
-                      {activeRowId === row.id && productSuggestions.length > 0 && (
-                        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100">
-                          <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between sticky top-0 border-b border-slate-100">
-                            <span>Matching Products ({productSuggestions.length})</span>
-                            <span>Click to Auto-fill HSN</span>
-                          </div>
-                          {productSuggestions.map((item, sIdx) => (
-                            <button
-                              key={`${item.item_name}-${item.hs_code || sIdx}`}
-                              type="button"
-                              onClick={() => {
-                                handleRowChange(row.id, 'product_name', item.item_name);
-                                if (item.hs_code) {
-                                  handleRowChange(row.id, 'hsn_code', item.hs_code);
-                                }
-                                if (item.unit) {
-                                  handleRowChange(row.id, 'unit', item.unit);
-                                }
-                                setActiveRowId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between transition-colors cursor-pointer"
-                            >
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-2">
-                                  <Package className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                  <span className="font-semibold text-slate-800">{item.item_name}</span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 ml-5">
-                                  {item.product_category && (
-                                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">
-                                      {item.product_category}
-                                    </span>
-                                  )}
-                                  {item.hs_code && (
-                                    <span className="font-mono text-blue-700 font-bold bg-blue-100/70 px-1.5 py-0.5 rounded border border-blue-200">
-                                      HSN: {item.hs_code}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
-                                + Select & Fill
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    <div>
+                      <ProductSearchSelect
+                        label="Product / SKU Name"
+                        value={row.product_name}
+                        onChange={(val) => handleRowChange(row.id, 'product_name', val)}
+                        onSelectProduct={(opt: ProductOption) => {
+                          handleRowChange(row.id, 'product_name', opt.item_name);
+                          if (opt.hs_code) {
+                            handleRowChange(row.id, 'hsn_code', opt.hs_code);
+                          }
+                          if (opt.unit) {
+                            handleRowChange(row.id, 'unit', opt.unit);
+                          }
+                        }}
+                        required
+                        placeholder="Search product name, HSN code, or category..."
+                      />
                     </div>
+
 
                     <div className="grid grid-cols-3 gap-3">
                       <div>
