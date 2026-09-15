@@ -11,6 +11,7 @@ import { CustomerSearchInput } from '../components/CustomerSearchInput';
 import { CustomerSelectionTable } from '../components/CustomerSelectionTable';
 import type { CustomerFormData } from '../components/CustomerSearchInput';
 import { VendorAllocationStep } from '../components/VendorAllocationStep';
+import { CustomerRequirementsStep } from '../components/CustomerRequirementsStep';
 
 interface ShipmentDetailPageProps {
   shipmentId: number;
@@ -21,7 +22,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  type MainTabType = 'config' | 'customers' | 'products' | 'customer_alloc' | 'quotations' | 'documents' | 'actuals' | 'audit';
+  type MainTabType = 'config' | 'customers' | 'requirements' | 'customer_alloc' | 'products' | 'quotations' | 'documents' | 'actuals' | 'audit';
   const [activeTab, setActiveTabState] = useState<MainTabType>(() => {
     const saved = localStorage.getItem(`a3_shipment_${shipmentId}_main_tab`);
     return (saved as MainTabType) || 'config';
@@ -651,6 +652,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
   const PIPELINE_STEPS = [
     { id: 'config' as const, stepNo: 1, title: '1. Overview & Rates', subtitle: 'Base assumptions & FX', icon: Settings },
     { id: 'customers' as const, stepNo: 2, title: '2. Customer Consignees', subtitle: 'Consignee directory', icon: Users, badge: shipment?.customers?.length || 0 },
+    { id: 'requirements' as const, stepNo: 3, title: '3. Customer Requirements', subtitle: 'Item purchase requests', icon: Package },
     { id: 'customer_alloc' as const, stepNo: 4, title: '4. Vendor Process', subtitle: '6-step supplier workflow', icon: Users },
     { id: 'products' as const, stepNo: 5, title: '5. Products & Excel Bulk Upload', subtitle: 'Bulk sheets & catalog', icon: Package, badge: shipment?.products?.filter(p => p.is_active !== false).length || 0 },
     { id: 'quotations' as const, stepNo: 6, title: '6. Duty & Quotations', subtitle: 'Formulas & P_1, P_2 sheets', icon: Calculator },
@@ -671,6 +673,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
   const flatSteps = [
     { tab: 'config', subTab: null, label: '1. Overview & Rates' },
     { tab: 'customers', subTab: null, label: '2. Customer Consignees' },
+    { tab: 'requirements', subTab: null, label: '3. Customer Requirements' },
     { tab: 'customer_alloc', subTab: 'allocation', label: '4.1 Requirement Allocation' },
     { tab: 'customer_alloc', subTab: 'proforma', label: '4.2 Vendor Proforma Invoice (PI)' },
     { tab: 'customer_alloc', subTab: 'quotation', label: '4.3 Preliminary Quotation' },
@@ -1144,14 +1147,26 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
                   type="button"
                   onClick={async () => {
                     await handleSaveManagedCustomers();
-                    setActiveTab('customer_alloc');
+                    setActiveTab('requirements');
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  <span>Save & Continue to Step 4: Vendor Process</span>
+                  <span>Save & Continue to Step 3: Customer Requirements</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Step 3: Customer Requirements */}
+          {activeTab === 'requirements' && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
+              <CustomerRequirementsStep
+                shipmentId={shipment.id}
+                customers={shipment.customers || []}
+                onNext={() => setActiveTab('customer_alloc')}
+                onBack={() => setActiveTab('customers')}
+              />
             </div>
           )}
 
@@ -1587,7 +1602,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
             localStorage.setItem(`a3_shipment_${shipment.id}_sub_tab`, tab);
           }}
           onFinish={() => setActiveTab('products')}
-          onBack={() => setActiveTab('customers')}
+          onBack={() => setActiveTab('requirements')}
         />
       )}
 
