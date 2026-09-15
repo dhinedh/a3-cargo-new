@@ -87,7 +87,8 @@ npm install
 # Run Vite development server
 npm run dev
 ```
-- Web Application URL: `http://localhost:5173`
+- Web Application URL (Local): `http://localhost:5173`
+- Live Deployed Frontend (Vercel): `https://a3-cargo-new.vercel.app`
 
 ---
 

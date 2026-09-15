@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Chapter, TariffLine, ImportLog, BatchImportSummary, PaginatedTariffResponse, TariffSearchResult, UnifiedProductSearchResult, ItemEntry, PaginatedItemEntryResponse, Customer, Shipment, ShipmentActual, DashboardSummary, Vendor, VendorProductMatchResponse, ShipmentCustomerRequirement, CustomerRequirementHistory, ShipmentVendorAllocation, ShipmentVendorProformaItem } from '../types';
 
-const RAW_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://a3expresscargo.onrender.com');
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://a3-cargo-new.onrender.com');
 axios.defaults.baseURL = RAW_BASE;
 const API_BASE = '/api/v1';
 

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: a3-express-backend
+    name: a3-cargo-new
     env: python
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT

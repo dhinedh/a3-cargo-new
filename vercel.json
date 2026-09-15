@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "https://a3expresscargo.onrender.com/api/v1/:path*"
+      "destination": "https://a3-cargo-new.onrender.com/api/v1/:path*"
     }
   ],
   "headers": [
