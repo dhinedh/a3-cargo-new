@@ -3518,6 +3518,8 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
           </span>
           <ArrowRight className="w-4 h-4" />
         </button>
+      </div>
+
       {/* Quotation Simulator Modal */}
       <QuotationSimulatorModal
         isOpen={showSimulatorModal}
