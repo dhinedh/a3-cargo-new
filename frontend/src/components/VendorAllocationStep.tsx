@@ -194,6 +194,9 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
     net_weight_kg: number;
     gross_weight_kg: number;
     proforma_price: number;
+    price_basis: 'PER_UNIT' | 'PER_CARTON' | 'PER_KG' | 'TOTAL_LOT';
+    price_per_carton: number;
+    price_per_kg: number;
     mrp: number;
     discount_pct: number;
     gst_pct: number;
@@ -213,10 +216,13 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
     net_weight_kg: 6.0,
     gross_weight_kg: 6.3,
     proforma_price: 50,
+    price_basis: 'PER_UNIT',
+    price_per_carton: 600,
+    price_per_kg: 100,
     mrp: 60,
     discount_pct: 5,
     gst_pct: 18,
-    total_payable: 0,
+    total_payable: 600,
     currency: 'INR',
     notes: ''
   });
@@ -627,24 +633,36 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
 
   const openPiModal = (item?: ShipmentVendorProformaItem) => {
     if (item) {
+      const defPrice = item.proforma_price || 0;
+      const defCartons = item.cartons_count || 1;
+      const defUnitsCtn = item.units_per_carton || 12;
+      const defTotalUnits = item.proforma_qty || (defCartons * defUnitsCtn);
+      const defNet = item.net_weight_kg || 0;
+      const defTotalPay = item.total_payable || (defPrice * defTotalUnits);
+      const defCtnPrice = defPrice * defUnitsCtn;
+      const defKgPrice = defNet > 0 ? defTotalPay / defNet : 0;
+
       setEditingPiId(item.id);
       setPiForm({
         vendor_id: item.vendor_id,
         product_name: item.product_name,
         sku: item.sku || '',
         hsn_code: item.hsn_code || '',
-        proforma_qty: item.proforma_qty,
-        cartons_count: item.cartons_count,
-        units_per_carton: item.units_per_carton,
+        proforma_qty: defTotalUnits,
+        cartons_count: defCartons,
+        units_per_carton: defUnitsCtn,
         unit_weight_val: item.unit_weight_val,
         unit_weight_unit: item.unit_weight_unit || 'KG',
-        net_weight_kg: item.net_weight_kg,
+        net_weight_kg: defNet,
         gross_weight_kg: item.gross_weight_kg,
-        proforma_price: item.proforma_price,
+        proforma_price: Number(defPrice.toFixed(4)),
+        price_basis: 'PER_UNIT',
+        price_per_carton: Number(defCtnPrice.toFixed(2)),
+        price_per_kg: Number(defKgPrice.toFixed(2)),
         mrp: item.mrp || 0,
         discount_pct: item.discount_pct || 0,
         gst_pct: item.gst_pct || 18,
-        total_payable: item.total_payable || 0,
+        total_payable: Number(defTotalPay.toFixed(2)),
         currency: item.currency || 'INR',
         notes: item.notes || ''
       });
@@ -666,6 +684,10 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
       const defTotalUnits = defCartons * defUnitsPerCarton;
       const defNet = defTotalUnits * defUnitWeight;
       const defGross = Number((defNet * 1.05).toFixed(2));
+      const defPrice = 45;
+      const defTotalPay = defPrice * defTotalUnits;
+      const defCtnPrice = defPrice * defUnitsPerCarton;
+      const defKgPrice = defNet > 0 ? defTotalPay / defNet : 0;
 
       setPiForm({
         vendor_id: defVendorId,
@@ -679,11 +701,14 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
         unit_weight_unit: 'KG',
         net_weight_kg: defNet,
         gross_weight_kg: defGross,
-        proforma_price: 45,
+        proforma_price: Number(defPrice.toFixed(4)),
+        price_basis: 'PER_UNIT',
+        price_per_carton: Number(defCtnPrice.toFixed(2)),
+        price_per_kg: Number(defKgPrice.toFixed(2)),
         mrp: 60,
         discount_pct: 5,
         gst_pct: 18,
-        total_payable: 0,
+        total_payable: Number(defTotalPay.toFixed(2)),
         currency: 'INR',
         notes: ''
       });
@@ -691,7 +716,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
     setShowPiModal(true);
   };
 
-  // Handle Proforma Form Field Changes with Live Math Recalculation
+  // Handle Proforma Form Field Changes with Live Math & Multi-Unit Pricing Recalculation
   const updatePiFormField = (field: string, val: any) => {
     setPiForm(prev => {
       const updated = { ...prev, [field]: val };
@@ -701,14 +726,73 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
       const unitsPerCarton = field === 'units_per_carton' ? Math.abs(Number(val) || 0) : Math.abs(prev.units_per_carton || 0);
       const uWeight = field === 'unit_weight_val' ? Math.abs(Number(val) || 0) : Math.abs(prev.unit_weight_val || 0);
 
+      const totalUnits = cartons * unitsPerCarton;
+      const netWt = Number((totalUnits * uWeight).toFixed(2));
+      const grossWt = Number((netWt * 1.05).toFixed(2));
+
       if (field === 'cartons_count' || field === 'units_per_carton' || field === 'unit_weight_val') {
-        const totalUnits = cartons * unitsPerCarton;
-        const netWt = Math.abs(totalUnits * uWeight);
-        const grossWt = Number((netWt * 1.05).toFixed(2));
         updated.proforma_qty = totalUnits;
-        updated.net_weight_kg = Number(netWt.toFixed(2));
+        updated.net_weight_kg = netWt;
         updated.gross_weight_kg = grossWt;
       }
+
+      const activeBasis = field === 'price_basis' ? val : (prev.price_basis || 'PER_UNIT');
+      updated.price_basis = activeBasis;
+
+      const currentTotalUnits = updated.proforma_qty || 1;
+      const currentNetWeight = updated.net_weight_kg || 0;
+      const currentUnitsPerCarton = updated.units_per_carton || 1;
+
+      let pUnit = prev.proforma_price || 0;
+      let pCarton = prev.price_per_carton || (pUnit * currentUnitsPerCarton);
+      let pKg = prev.price_per_kg || (currentNetWeight > 0 ? (pUnit * currentTotalUnits) / currentNetWeight : 0);
+      let pTotal = prev.total_payable || (pUnit * currentTotalUnits);
+
+      if (field === 'proforma_price') {
+        pUnit = Math.abs(Number(val) || 0);
+        pCarton = pUnit * currentUnitsPerCarton;
+        pTotal = pUnit * currentTotalUnits;
+        pKg = currentNetWeight > 0 ? pTotal / currentNetWeight : 0;
+      } else if (field === 'price_per_carton') {
+        pCarton = Math.abs(Number(val) || 0);
+        pUnit = currentUnitsPerCarton > 0 ? pCarton / currentUnitsPerCarton : pCarton;
+        pTotal = pUnit * currentTotalUnits;
+        pKg = currentNetWeight > 0 ? pTotal / currentNetWeight : 0;
+      } else if (field === 'price_per_kg') {
+        pKg = Math.abs(Number(val) || 0);
+        pTotal = currentNetWeight > 0 ? pKg * currentNetWeight : pKg * currentTotalUnits;
+        pUnit = currentTotalUnits > 0 ? pTotal / currentTotalUnits : 0;
+        pCarton = pUnit * currentUnitsPerCarton;
+      } else if (field === 'total_payable') {
+        pTotal = Math.abs(Number(val) || 0);
+        pUnit = currentTotalUnits > 0 ? pTotal / currentTotalUnits : 0;
+        pCarton = pUnit * currentUnitsPerCarton;
+        pKg = currentNetWeight > 0 ? pTotal / currentNetWeight : 0;
+      } else {
+        // When packing dimensions or price_basis change, re-evaluate derived values based on activeBasis
+        if (activeBasis === 'PER_UNIT') {
+          pCarton = pUnit * currentUnitsPerCarton;
+          pTotal = pUnit * currentTotalUnits;
+          pKg = currentNetWeight > 0 ? pTotal / currentNetWeight : 0;
+        } else if (activeBasis === 'PER_CARTON') {
+          pUnit = currentUnitsPerCarton > 0 ? pCarton / currentUnitsPerCarton : pCarton;
+          pTotal = pUnit * currentTotalUnits;
+          pKg = currentNetWeight > 0 ? pTotal / currentNetWeight : 0;
+        } else if (activeBasis === 'PER_KG') {
+          pTotal = currentNetWeight > 0 ? pKg * currentNetWeight : pKg * currentTotalUnits;
+          pUnit = currentTotalUnits > 0 ? pTotal / currentTotalUnits : 0;
+          pCarton = pUnit * currentUnitsPerCarton;
+        } else if (activeBasis === 'TOTAL_LOT') {
+          pUnit = currentTotalUnits > 0 ? pTotal / currentTotalUnits : 0;
+          pCarton = pUnit * currentUnitsPerCarton;
+          pKg = currentNetWeight > 0 ? pTotal / currentNetWeight : 0;
+        }
+      }
+
+      updated.proforma_price = Number(pUnit.toFixed(4));
+      updated.price_per_carton = Number(pCarton.toFixed(2));
+      updated.price_per_kg = Number(pKg.toFixed(2));
+      updated.total_payable = Number(pTotal.toFixed(2));
 
       return updated;
     });
@@ -716,75 +800,68 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
 
   // Preset Packing Configuration Handler (e.g. Vendor A: 12/ctn, Vendor B: 24/ctn, Vendor C: 5/ctn, Vendor D: 30kg bag)
   const applyPackingPreset = (presetName: string) => {
-    if (presetName === 'VENDOR_A_12') {
-      setPiForm(prev => {
-        const cartons = prev.cartons_count || 10;
-        const units = 12;
-        const uWeight = 0.5;
-        const totalQty = cartons * units;
-        const net = totalQty * uWeight;
-        return {
-          ...prev,
-          units_per_carton: units,
-          unit_weight_val: uWeight,
-          proforma_qty: totalQty,
-          net_weight_kg: net,
-          gross_weight_kg: Number((net * 1.05).toFixed(2)),
-          notes: 'Vendor A configuration (12 units/carton)'
-        };
-      });
-    } else if (presetName === 'VENDOR_B_24') {
-      setPiForm(prev => {
-        const cartons = prev.cartons_count || 10;
-        const units = 24;
-        const uWeight = 1.0;
-        const totalQty = cartons * units;
-        const net = totalQty * uWeight;
-        return {
-          ...prev,
-          units_per_carton: units,
-          unit_weight_val: uWeight,
-          proforma_qty: totalQty,
-          net_weight_kg: net,
-          gross_weight_kg: Number((net * 1.05).toFixed(2)),
-          notes: 'Vendor B configuration (24 units/carton)'
-        };
-      });
+    let units = 12;
+    let uWeight = 0.5;
+    let note = 'Vendor A configuration (12 units/carton)';
+
+    if (presetName === 'VENDOR_B_24') {
+      units = 24;
+      uWeight = 1.0;
+      note = 'Vendor B configuration (24 units/carton)';
     } else if (presetName === 'VENDOR_C_5') {
-      setPiForm(prev => {
-        const cartons = prev.cartons_count || 10;
-        const units = 5;
-        const uWeight = 2.0;
-        const totalQty = cartons * units;
-        const net = totalQty * uWeight;
-        return {
-          ...prev,
-          units_per_carton: units,
-          unit_weight_val: uWeight,
-          proforma_qty: totalQty,
-          net_weight_kg: net,
-          gross_weight_kg: Number((net * 1.05).toFixed(2)),
-          notes: 'Vendor C configuration (5 units/carton)'
-        };
-      });
+      units = 5;
+      uWeight = 2.0;
+      note = 'Vendor C configuration (5 units/carton)';
     } else if (presetName === 'VENDOR_D_BAG_30') {
-      setPiForm(prev => {
-        const bags = prev.cartons_count || 10;
-        const units = 1;
-        const uWeight = 30.0;
-        const totalQty = bags * units;
-        const net = bags * uWeight;
-        return {
-          ...prev,
-          units_per_carton: units,
-          unit_weight_val: uWeight,
-          proforma_qty: totalQty,
-          net_weight_kg: net,
-          gross_weight_kg: Number((net + (bags * 0.5)).toFixed(2)),
-          notes: 'Vendor D configuration (30 kg bag)'
-        };
-      });
+      units = 1;
+      uWeight = 30.0;
+      note = 'Vendor D configuration (30 kg bag)';
     }
+
+    setPiForm(prev => {
+      const cartons = prev.cartons_count || 10;
+      const totalQty = cartons * units;
+      const net = totalQty * uWeight;
+      const gross = presetName === 'VENDOR_D_BAG_30' ? Number((net + (cartons * 0.5)).toFixed(2)) : Number((net * 1.05).toFixed(2));
+
+      const activeBasis = prev.price_basis || 'PER_UNIT';
+      let pUnit = prev.proforma_price || 0;
+      let pCarton = prev.price_per_carton || (pUnit * units);
+      let pKg = prev.price_per_kg || (net > 0 ? (pUnit * totalQty) / net : 0);
+      let pTotal = prev.total_payable || (pUnit * totalQty);
+
+      if (activeBasis === 'PER_UNIT') {
+        pCarton = pUnit * units;
+        pTotal = pUnit * totalQty;
+        pKg = net > 0 ? pTotal / net : 0;
+      } else if (activeBasis === 'PER_CARTON') {
+        pUnit = units > 0 ? pCarton / units : pCarton;
+        pTotal = pUnit * totalQty;
+        pKg = net > 0 ? pTotal / net : 0;
+      } else if (activeBasis === 'PER_KG') {
+        pTotal = net > 0 ? pKg * net : pKg * totalQty;
+        pUnit = totalQty > 0 ? pTotal / totalQty : 0;
+        pCarton = pUnit * units;
+      } else if (activeBasis === 'TOTAL_LOT') {
+        pUnit = totalQty > 0 ? pTotal / totalQty : 0;
+        pCarton = pUnit * units;
+        pKg = net > 0 ? pTotal / net : 0;
+      }
+
+      return {
+        ...prev,
+        units_per_carton: units,
+        unit_weight_val: uWeight,
+        proforma_qty: totalQty,
+        net_weight_kg: net,
+        gross_weight_kg: gross,
+        proforma_price: Number(pUnit.toFixed(4)),
+        price_per_carton: Number(pCarton.toFixed(2)),
+        price_per_kg: Number(pKg.toFixed(2)),
+        total_payable: Number(pTotal.toFixed(2)),
+        notes: note
+      };
+    });
   };
 
   // Save Proforma Invoice Item (Add or Update)
@@ -2635,29 +2712,230 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Proforma Price (per Unit) *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={piForm.proforma_price}
-                    onChange={e => updatePiFormField('proforma_price', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white"
-                  />
+              {/* Dynamic Multi-Unit Pricing & Auto-Calculation Section */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Calculator className="w-4 h-4 text-emerald-600" />
+                    <span>Select Pricing Unit Basis & Update Price</span>
+                  </label>
+                  <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    ⚡ Auto-syncs across all units
+                  </span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
-                  <select
-                    value={piForm.currency}
-                    onChange={e => updatePiFormField('currency', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 bg-white"
+                {/* Unit Basis Selection Tabs */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-slate-200/80 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => updatePiFormField('price_basis', 'PER_UNIT')}
+                    className={`py-2 px-2 rounded-lg transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
+                      piForm.price_basis === 'PER_UNIT'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
                   >
-                    <option value="INR">INR (₹)</option>
-                    <option value="USD">USD ($)</option>
-                  </select>
+                    <span>📦 Per Unit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updatePiFormField('price_basis', 'PER_CARTON')}
+                    className={`py-2 px-2 rounded-lg transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
+                      piForm.price_basis === 'PER_CARTON'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>🛍️ Per Carton</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updatePiFormField('price_basis', 'PER_KG')}
+                    className={`py-2 px-2 rounded-lg transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
+                      piForm.price_basis === 'PER_KG'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>⚖️ Per KG</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updatePiFormField('price_basis', 'TOTAL_LOT')}
+                    className={`py-2 px-2 rounded-lg transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
+                      piForm.price_basis === 'TOTAL_LOT'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>💰 Whole Lot</span>
+                  </button>
+                </div>
+
+                {/* Main Selected Price Input & Currency */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-blue-900 mb-1">
+                      {piForm.price_basis === 'PER_UNIT' && 'Proforma Price (per Unit / PCS) *'}
+                      {piForm.price_basis === 'PER_CARTON' && 'Proforma Price (per Carton / Outer Bag) *'}
+                      {piForm.price_basis === 'PER_KG' && 'Proforma Price (per KG Net Weight) *'}
+                      {piForm.price_basis === 'TOTAL_LOT' && 'Proforma Price (Whole Lot Total Amount) *'}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-500">
+                        {piForm.currency === 'USD' ? '$' : '₹'}
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        required
+                        value={
+                          piForm.price_basis === 'PER_UNIT'
+                            ? piForm.proforma_price
+                            : piForm.price_basis === 'PER_CARTON'
+                            ? piForm.price_per_carton
+                            : piForm.price_basis === 'PER_KG'
+                            ? piForm.price_per_kg
+                            : piForm.total_payable
+                        }
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          if (piForm.price_basis === 'PER_UNIT') updatePiFormField('proforma_price', val);
+                          else if (piForm.price_basis === 'PER_CARTON') updatePiFormField('price_per_carton', val);
+                          else if (piForm.price_basis === 'PER_KG') updatePiFormField('price_per_kg', val);
+                          else if (piForm.price_basis === 'TOTAL_LOT') updatePiFormField('total_payable', val);
+                        }}
+                        className="w-full pl-7 pr-3 py-2 border-2 border-blue-500 focus:border-blue-700 rounded-lg text-sm font-mono font-extrabold text-blue-950 bg-white shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+                    <select
+                      value={piForm.currency}
+                      onChange={e => updatePiFormField('currency', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 bg-white"
+                    >
+                      <option value="INR">INR (₹)</option>
+                      <option value="USD">USD ($)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Auto-Calculated Units Breakdown (4 Cards Grid) */}
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+                    <span>⚡ Auto-Calculated Price Across All Units:</span>
+                    <span className="text-[10px] text-slate-500 italic">(Editing any field recalculates remaining units)</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    
+                    {/* Card 1: Per Unit */}
+                    <div
+                      onClick={() => updatePiFormField('price_basis', 'PER_UNIT')}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        piForm.price_basis === 'PER_UNIT'
+                          ? 'bg-blue-100/80 border-blue-500 ring-2 ring-blue-400 text-blue-950 shadow-xs'
+                          : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                        <span>Per Unit</span>
+                        {piForm.price_basis === 'PER_UNIT' && <span className="text-[9px] text-blue-700 font-extrabold">Active</span>}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-xs font-bold text-slate-600">{piForm.currency === 'USD' ? '$' : '₹'}</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={piForm.proforma_price}
+                          onChange={e => updatePiFormField('proforma_price', Number(e.target.value))}
+                          onClick={e => e.stopPropagation()}
+                          className="w-full text-right font-mono font-bold bg-transparent focus:bg-white px-1 border-b border-dashed border-slate-400 focus:border-blue-600 outline-none text-xs text-blue-950"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Card 2: Per Carton */}
+                    <div
+                      onClick={() => updatePiFormField('price_basis', 'PER_CARTON')}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        piForm.price_basis === 'PER_CARTON'
+                          ? 'bg-blue-100/80 border-blue-500 ring-2 ring-blue-400 text-blue-950 shadow-xs'
+                          : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                        <span>Per Carton</span>
+                        {piForm.price_basis === 'PER_CARTON' && <span className="text-[9px] text-blue-700 font-extrabold">Active</span>}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-xs font-bold text-slate-600">{piForm.currency === 'USD' ? '$' : '₹'}</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={piForm.price_per_carton}
+                          onChange={e => updatePiFormField('price_per_carton', Number(e.target.value))}
+                          onClick={e => e.stopPropagation()}
+                          className="w-full text-right font-mono font-bold bg-transparent focus:bg-white px-1 border-b border-dashed border-slate-400 focus:border-blue-600 outline-none text-xs text-blue-950"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Card 3: Per KG */}
+                    <div
+                      onClick={() => updatePiFormField('price_basis', 'PER_KG')}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        piForm.price_basis === 'PER_KG'
+                          ? 'bg-blue-100/80 border-blue-500 ring-2 ring-blue-400 text-blue-950 shadow-xs'
+                          : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                        <span>Per KG Net</span>
+                        {piForm.price_basis === 'PER_KG' && <span className="text-[9px] text-blue-700 font-extrabold">Active</span>}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-xs font-bold text-slate-600">{piForm.currency === 'USD' ? '$' : '₹'}</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={piForm.price_per_kg}
+                          onChange={e => updatePiFormField('price_per_kg', Number(e.target.value))}
+                          onClick={e => e.stopPropagation()}
+                          className="w-full text-right font-mono font-bold bg-transparent focus:bg-white px-1 border-b border-dashed border-slate-400 focus:border-blue-600 outline-none text-xs text-blue-950"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Card 4: Whole Lot */}
+                    <div
+                      onClick={() => updatePiFormField('price_basis', 'TOTAL_LOT')}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        piForm.price_basis === 'TOTAL_LOT'
+                          ? 'bg-blue-100/80 border-blue-500 ring-2 ring-blue-400 text-blue-950 shadow-xs'
+                          : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                        <span>Whole Lot</span>
+                        {piForm.price_basis === 'TOTAL_LOT' && <span className="text-[9px] text-blue-700 font-extrabold">Active</span>}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-xs font-bold text-slate-600">{piForm.currency === 'USD' ? '$' : '₹'}</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={piForm.total_payable}
+                          onChange={e => updatePiFormField('total_payable', Number(e.target.value))}
+                          onClick={e => e.stopPropagation()}
+                          className="w-full text-right font-mono font-bold bg-transparent focus:bg-white px-1 border-b border-dashed border-slate-400 focus:border-blue-600 outline-none text-xs text-blue-950"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
               </div>
 

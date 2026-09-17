@@ -395,17 +395,6 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
           </button>
 
           <a
-            href={apiClient.getRequirementsTemplateExcelUrl(shipmentId)}
-            target="_blank"
-            rel="noreferrer"
-            className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Download Excel Template for Customer Requirements Upload"
-          >
-            <Download className="w-4 h-4 text-blue-600" />
-            <span>Download Template</span>
-          </a>
-
-          <a
             href={apiClient.getRequirementsExportExcelUrl(shipmentId)}
             target="_blank"
             rel="noreferrer"
@@ -427,9 +416,20 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
             <span>Export PDF</span>
           </a>
 
+          <a
+            href={apiClient.getRequirementsTemplateExcelUrl(shipmentId)}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Download Excel Template to upload customer requirements"
+          >
+            <Download className="w-4 h-4 text-blue-600" />
+            <span>Download Template</span>
+          </a>
+
           <label className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer border border-slate-200">
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>{uploading ? 'Importing Excel/CSV...' : 'Upload Excel / CSV'}</span>
+            <span>{uploading ? 'Importing Excel/CSV...' : 'Upload Excel'}</span>
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -506,18 +506,31 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
                 href={apiClient.getRequirementsTemplateExcelUrl(shipmentId)}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                 title="Download Excel Template for Uploading Requirements"
               >
-                <Download className="w-4 h-4 text-emerald-600" />
+                <Download className="w-4 h-4 text-blue-600" />
                 <span>Download Excel Template</span>
               </a>
+
+              <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer border border-slate-200 shadow-xs">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <span>{uploading ? 'Importing Excel...' : 'Upload Excel Sheet'}</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleExcelUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </label>
+
               <button
                 onClick={handleOpenAddModal}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2 shadow-sm cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Add Customer Requirement
+                <span>Add Customer Requirement</span>
               </button>
             </div>
           </div>
