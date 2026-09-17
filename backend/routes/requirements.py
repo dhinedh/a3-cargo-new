@@ -21,6 +21,21 @@ router = APIRouter(prefix="/api/v1/shipments", tags=["Customer Requirements"])
 
 TRADE_NAME_HSN_MAP = {
     "ragi": "1008.29.00",
+    "rag": "1008.29.00",
+    "ragigrain": "1008.29.00",
+    "raggrain": "1008.29.00",
+    "rag grain": "1008.29.00",
+    "finger millet": "1008.29.00",
+    "urad": "0713.31.00",
+    "uraddal": "0713.31.00",
+    "urad dal": "0713.31.00",
+    "uraddhal": "0713.31.00",
+    "dhal": "0713.40.00",
+    "dal": "0713.40.00",
+    "lentil": "0713.40.00",
+    "sugar": "1701.99.90",
+    "whitesugar": "1701.99.90",
+    "white sugar": "1701.99.90",
     "atta": "1101.00.10",
     "maida": "1101.00.90",
     "suji": "1103.11.00",
@@ -37,9 +52,7 @@ TRADE_NAME_HSN_MAP = {
     "cinnamon": "0906.11.00",
     "clove": "0907.10.00",
     "rice": "1006.30.10",
-    "dhal": "0713.40.00",
-    "dal": "0713.40.00",
-    "sugar": "1701.99.90",
+    "basmati": "1006.30.10",
     "salt": "2501.00.10",
     "oil": "1512.19.10",
     "jaggery": "1702.90.90"
@@ -48,14 +61,20 @@ TRADE_NAME_HSN_MAP = {
 CANONICAL_PRODUCT_MAP = {
     "uraddal": "Urad Dal",
     "uradal": "Urad Dal",
+    "uraddhal": "Urad Dal",
     "urad": "Urad Dal",
     "whitsugar": "White Sugar",
     "witesugar": "White Sugar",
     "whtsugar": "White Sugar",
     "whitsugr": "White Sugar",
+    "whitesugar": "White Sugar",
     "sugar": "White Sugar",
+    "suagr": "White Sugar",
+    "sgur": "White Sugar",
     "ragigrain": "Ragi Grain",
+    "raggrain": "Ragi Grain",
     "ragi": "Ragi Grain",
+    "rag": "Ragi Grain",
     "gramflour": "Gram Flour",
     "gram": "Gram Flour",
     "besan": "Gram Flour",
@@ -67,6 +86,7 @@ CANONICAL_PRODUCT_MAP = {
     "coriander": "Coriander Seeds",
     "dhaniya": "Coriander Seeds",
     "cumin": "Cumin Seeds",
+    "jeera": "Cumin Seeds",
     "mustard": "Mustard Seeds",
     "pepper": "Pepper Whole",
     "cardamom": "Cardamom Green",
@@ -90,10 +110,19 @@ def auto_correct_product_name(raw_name: str, db: Session) -> tuple[str, bool]:
     clean = original.lower().replace("-", "").replace("_", "")
     compact = clean.replace(" ", "")
 
+    # 1. Exact match in canonical map (compacted)
     if compact in CANONICAL_PRODUCT_MAP:
         corrected = CANONICAL_PRODUCT_MAP[compact]
         return corrected, (corrected.lower() != original.lower())
 
+    # 2. Check camelCase split candidate
+    split_camel = re.sub(r'([a-z])([A-Z])', r'\1 \2', original)
+    split_compact = split_camel.lower().replace("-", "").replace("_", "").replace(" ", "")
+    if split_compact in CANONICAL_PRODUCT_MAP:
+        corrected = CANONICAL_PRODUCT_MAP[split_compact]
+        return corrected, (corrected.lower() != original.lower())
+
+    # 3. Word replacements (spelling fixes)
     words = original.split()
     corrected_words = []
     changed = False
@@ -105,8 +134,11 @@ def auto_correct_product_name(raw_name: str, db: Session) -> tuple[str, bool]:
         elif wl in ["suagr", "sgur"]:
             corrected_words.append("Sugar")
             changed = True
-        elif wl in ["urad", "uraddal"]:
+        elif wl in ["urad", "uraddal", "uraddhal"]:
             corrected_words.append("Urad")
+            changed = True
+        elif wl in ["rag", "ragi"]:
+            corrected_words.append("Ragi")
             changed = True
         else:
             corrected_words.append(w)
@@ -115,21 +147,30 @@ def auto_correct_product_name(raw_name: str, db: Session) -> tuple[str, bool]:
         res = " ".join(corrected_words)
         if res.lower() == "urad":
             res = "Urad Dal"
+        elif res.lower() == "ragi" or res.lower() == "ragi grain":
+            res = "Ragi Grain"
         return res, True
 
-    split_camel = re.sub(r'([a-z])([A-Z])', r'\1 \2', original)
-    if split_camel != original:
-        return split_camel, True
-
+    # 4. Fuzzy match against canonical values and database catalog
     try:
+        targets = list(set(CANONICAL_PRODUCT_MAP.values()))
         catalog_items = db.query(models.ItemEntry.item_name).all()
-        known_names = [i.item_name for i in catalog_items if i.item_name]
-        if known_names:
-            matches = difflib.get_close_matches(original, known_names, n=1, cutoff=0.7)
-            if matches and matches[0].lower() != original.lower():
-                return matches[0], True
+        for i in catalog_items:
+            if i.item_name and i.item_name not in targets:
+                targets.append(i.item_name)
+        
+        matches = difflib.get_close_matches(original, targets, n=1, cutoff=0.6)
+        if not matches and split_camel != original:
+            matches = difflib.get_close_matches(split_camel, targets, n=1, cutoff=0.6)
+
+        if matches and matches[0].lower() != original.lower():
+            return matches[0], True
     except Exception:
         pass
+
+    # 5. Fallback to camelCase split if no canonical match found
+    if split_camel != original:
+        return split_camel, True
 
     return original, False
 
@@ -138,10 +179,12 @@ def auto_map_hsn_code(product_name: str, db: Session) -> Optional[str]:
         return None
     clean_name = product_name.strip().lower()
     main_query = clean_name.split('(')[0].strip()
+    compact_query = main_query.replace(" ", "").replace("-", "").replace("_", "")
 
     # 1. Check Trade Name Dictionary
     for key, hsn in TRADE_NAME_HSN_MAP.items():
-        if key in main_query or main_query in key:
+        key_compact = key.replace(" ", "")
+        if key in main_query or main_query in key or key_compact in compact_query or compact_query in key_compact:
             return hsn
 
     # 2. Search in ItemEntry master table
@@ -167,37 +210,37 @@ def generate_sequential_sub_hsn(base_hsn: str, seq_number: int) -> str:
         return ""
     clean = base_hsn.strip()
 
+    # Format raw digits like 07134000 -> 0713.40.00
+    digits = re.sub(r'[^0-9]', '', clean)
+    if len(digits) == 8 and "." not in clean:
+        clean = f"{digits[:4]}.{digits[4:6]}.{digits[6:]}"
+    elif len(digits) == 6 and "." not in clean:
+        clean = f"{digits[:4]}.{digits[4:6]}"
+    elif len(digits) == 4 and "." not in clean:
+        clean = digits
+
+    if seq_number <= 1:
+        return clean
+
     if "." in clean:
         parts = clean.split(".")
-        p1 = parts[0]
-        p2 = parts[1] if len(parts) > 1 else ""
-        if len(p2) == 3 and p2.isdigit():
-            p2 = p2[:2]
-        base_prefix = f"{p1}.{p2[:2]}" if p2 else p1
+        prefix = ".".join(parts[:-1])
+        last_part = parts[-1]
+        if last_part.isdigit():
+            width = max(2, len(last_part))
+            base_val = int(last_part)
+            new_val = base_val + (seq_number - 1)
+            return f"{prefix}.{new_val:0{width}d}"
+        return f"{clean}.{seq_number:02d}"
     else:
-        if len(clean) >= 6:
-            base_prefix = f"{clean[:4]}.{clean[4:6]}"
-        elif len(clean) >= 4:
-            base_prefix = f"{clean[:4]}"
-        else:
-            base_prefix = clean
-
-    return f"{base_prefix}{seq_number}"
+        return clean
 
 def assign_sequential_hsn(shipment_id: int, product_name: str, raw_hsn: Optional[str], db: Session, cat_counts: dict) -> str:
     base = raw_hsn.strip() if raw_hsn and raw_hsn.lower() != "nan" else auto_map_hsn_code(product_name, db)
     if not base:
-        base = "9999.00"
+        base = "9999.00.00"
 
-    if "." in base:
-        parts = base.split(".")
-        p1 = parts[0]
-        p2 = parts[1] if len(parts) > 1 else ""
-        if len(p2) == 3 and p2.isdigit():
-            p2 = p2[:2]
-        base_prefix = f"{p1}.{p2[:2]}" if p2 else p1
-    else:
-        base_prefix = base[:4]
+    base_prefix = base.split(".")[0] if "." in base else base[:4]
 
     if base_prefix not in cat_counts:
         existing_count = db.query(models.ShipmentCustomerRequirement).filter(
@@ -226,14 +269,27 @@ def get_customer_requirements(shipment_id: int, db: Session = Depends(get_db)):
         models.ShipmentCustomerRequirement.shipment_id == shipment_id
     ).all()
 
-    # Auto-fix corrupted HSN codes in database
+    # Auto-fix product names and corrupted HSN codes in database
     modified = False
     for req in reqs:
-        if req.hsn_code and "." not in req.hsn_code:
+        corrected_name, name_changed = auto_correct_product_name(req.product_name, db)
+        if name_changed and corrected_name != req.product_name:
+            req.product_name = corrected_name
+            modified = True
+
+        is_corrupted_hsn = (
+            not req.hsn_code or 
+            req.hsn_code.startswith("9999") or 
+            bool(re.search(r'\.\d{3}$', req.hsn_code)) or 
+            "." not in req.hsn_code
+        )
+        if is_corrupted_hsn or name_changed:
             correct_base = auto_map_hsn_code(req.product_name, db)
             if correct_base:
-                req.hsn_code = generate_sequential_sub_hsn(correct_base, 1)
-                modified = True
+                new_hsn = generate_sequential_sub_hsn(correct_base, 1)
+                if new_hsn != req.hsn_code:
+                    req.hsn_code = new_hsn
+                    modified = True
     if modified:
         db.commit()
 
