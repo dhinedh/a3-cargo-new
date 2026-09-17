@@ -59,44 +59,44 @@ class ImportLog(Base):
 class ItemEntry(Base):
     __tablename__ = "item_entries"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
 
     # User-provided item details
-    item_name = Column(String, nullable=False, index=True)
-    item_category = Column(String, nullable=True)  # Auto-filled from chapter title or manually set
-    item_classification = Column(String, default="NORMAL")  # "NORMAL", "LICENSED", "SCL"
-    unit = Column(String, default="KG", nullable=True)  # Unit of measurement: KG, Units, Pcs, Liters, etc.
-    notes = Column(Text, nullable=True)
-    currency = Column(String, default="LKR", nullable=False)
+    item_name: Any = Column(String, nullable=False, index=True)
+    item_category: Any = Column(String, nullable=True)  # Auto-filled from chapter title or manually set
+    item_classification: Any = Column(String, default="NORMAL")  # "NORMAL", "LICENSED", "SCL"
+    unit: Any = Column(String, default="KG", nullable=True)  # Unit of measurement: KG, Units, Pcs, Liters, etc.
+    notes: Any = Column(Text, nullable=True)
+    currency: Any = Column(String, default="LKR", nullable=False)
 
     # Tariff-linked data (auto-filled from tariff_lines search)
-    tariff_line_id = Column(Integer, ForeignKey("tariff_lines.id"), nullable=True, index=True)
-    hs_code = Column(String, nullable=True, index=True)
-    tariff_description = Column(Text, nullable=True)  # Description from tariff line
-    general_duty_rate = Column(String, nullable=True)
-    vat_rate = Column(String, nullable=True)
-    pal_rate = Column(String, nullable=True)
-    cess_rate = Column(String, nullable=True)
-    sscl_rate = Column(String, nullable=True)
-    excise_rate = Column(String, nullable=True)
-    scl_rate = Column(String, nullable=True)
+    tariff_line_id: Any = Column(Integer, ForeignKey("tariff_lines.id"), nullable=True, index=True)
+    hs_code: Any = Column(String, nullable=True, index=True)
+    tariff_description: Any = Column(Text, nullable=True)  # Description from tariff line
+    general_duty_rate: Any = Column(String, nullable=True)
+    vat_rate: Any = Column(String, nullable=True)
+    pal_rate: Any = Column(String, nullable=True)
+    cess_rate: Any = Column(String, nullable=True)
+    sscl_rate: Any = Column(String, nullable=True)
+    excise_rate: Any = Column(String, nullable=True)
+    scl_rate: Any = Column(String, nullable=True)
 
     # Weight and favorite metadata
-    weight_val = Column(Numeric(precision=18, scale=4), default=0.0)
-    weight_unit = Column(String, default="KG")
+    weight_val: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    weight_unit: Any = Column(String, default="KG")
     is_favorite: Any = Column(Boolean, default=True, index=True)
 
     # Pricing fields
-    purchase_price = Column(Numeric(precision=18, scale=4), nullable=True)
-    price_per_kg = Column(Numeric(precision=18, scale=4), nullable=True)
-    total_quantity_kg = Column(Numeric(precision=18, scale=4), nullable=True)
-    per_month_qty_kg = Column(Numeric(precision=18, scale=4), nullable=True)
-    total_value = Column(Numeric(precision=18, scale=4), nullable=True)  # price_per_kg * total_quantity_kg
-    per_month_value = Column(Numeric(precision=18, scale=4), nullable=True)  # price_per_kg * per_month_qty_kg
+    purchase_price: Any = Column(Numeric(precision=18, scale=4), nullable=True)
+    price_per_kg: Any = Column(Numeric(precision=18, scale=4), nullable=True)
+    total_quantity_kg: Any = Column(Numeric(precision=18, scale=4), nullable=True)
+    per_month_qty_kg: Any = Column(Numeric(precision=18, scale=4), nullable=True)
+    total_value: Any = Column(Numeric(precision=18, scale=4), nullable=True)  # price_per_kg * total_quantity_kg
+    per_month_value: Any = Column(Numeric(precision=18, scale=4), nullable=True)  # price_per_kg * per_month_qty_kg
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Any = Column(DateTime, default=datetime.utcnow)
+    updated_at: Any = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationship
     tariff_line = relationship("TariffLine")
