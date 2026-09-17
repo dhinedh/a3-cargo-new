@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from decimal import Decimal
+from pydantic import BaseModel
 import io
 import pandas as pd
 from reportlab.lib.pagesizes import letter, A4
@@ -251,6 +252,43 @@ def delete_customer_requirement(shipment_id: int, req_id: int, db: Session = Dep
     db.commit()
     return {"message": "Requirement deleted successfully"}
 
+class BulkDeleteRequirementsPayload(BaseModel):
+    requirement_ids: List[int]
+
+@router.post("/{shipment_id}/requirements/bulk-delete")
+def bulk_delete_customer_requirements(
+    shipment_id: int, 
+    payload: BulkDeleteRequirementsPayload, 
+    db: Session = Depends(get_db)
+):
+    s = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+
+    if not payload.requirement_ids:
+        return {"message": "No requirement IDs provided", "deleted_count": 0}
+
+    deleted_count = db.query(models.ShipmentCustomerRequirement).filter(
+        models.ShipmentCustomerRequirement.shipment_id == shipment_id,
+        models.ShipmentCustomerRequirement.id.in_(payload.requirement_ids)
+    ).delete(synchronize_session=False)
+
+    db.commit()
+    return {"message": f"Successfully deleted {deleted_count} requirement(s)", "deleted_count": deleted_count}
+
+@router.delete("/{shipment_id}/requirements/clear-all")
+def clear_all_customer_requirements(shipment_id: int, db: Session = Depends(get_db)):
+    s = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+
+    deleted_count = db.query(models.ShipmentCustomerRequirement).filter(
+        models.ShipmentCustomerRequirement.shipment_id == shipment_id
+    ).delete(synchronize_session=False)
+
+    db.commit()
+    return {"message": f"Successfully cleared all {deleted_count} customer requirements", "deleted_count": deleted_count}
+
 @router.post("/{shipment_id}/requirements/upload-excel", response_model=List[schemas.ShipmentCustomerRequirementResponse])
 async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
     s = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
@@ -258,14 +296,30 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
         raise HTTPException(status_code=404, detail="Shipment not found")
 
     contents = await file.read()
-    try:
-        df = pd.read_excel(io.BytesIO(contents))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read Excel file: {str(e)}")
+    filename = (file.filename or "").lower()
 
-    df.columns = [str(c).strip().lower().replace(" ", "_").replace("-", "_") for c in df.columns]
+    try:
+        if filename.endswith(".csv"):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            try:
+                df = pd.read_excel(io.BytesIO(contents))
+            except Exception:
+                df = pd.read_csv(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file format (.xlsx, .xls, .csv): {str(e)}")
+
+    if df.empty:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    # Clean column headers
+    df.columns = [str(c).strip().lower().replace(" ", "_").replace("-", "_").replace(".", "_") for c in df.columns]
 
     customers_map = {c.name.strip().lower(): c.id for c in db.query(models.Customer).all()}
+    for c in db.query(models.Customer).all():
+        if c.code:
+            customers_map[c.code.strip().lower()] = c.id
+
     shipment_customers = [sc.customer_id for sc in s.customers]
     default_cust_id = shipment_customers[0] if shipment_customers else None
 
@@ -280,24 +334,46 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
     created_requirements = []
     cat_counts = {}
 
+    PROD_COLS = ["product_name", "product", "sku", "item_name", "item", "description", "particulars", "name", "product_description", "items", "details"]
+    QTY_COLS = ["quantity", "required_quantity", "qty", "req_qty", "count", "cartons", "no_of_cartons", "pcs", "nos", "amount", "total_qty"]
+    HSN_COLS = ["hsn_code", "hsn", "hs_code", "hsn_sac", "tariff", "hs_number", "tariff_code"]
+    CUST_COLS = ["customer", "customer_name", "consignee", "buyer", "client", "party", "party_name"]
+    UNIT_COLS = ["unit", "uom", "type", "packing_unit", "pkg"]
+    NOTES_COLS = ["notes", "remarks", "comments", "specification", "specifications"]
+
+    def find_val(row, cols, default=""):
+        for col in cols:
+            if col in row and pd.notna(row[col]):
+                val = str(row[col]).strip()
+                if val and val.lower() != "nan":
+                    return val
+        return default
+
     for idx, row in df.iterrows():
-        p_name = str(row.get("product_name") or row.get("product") or row.get("sku") or f"Requirement {int(idx)+1}").strip()
-        if not p_name or p_name == "nan":
+        p_name = find_val(row, PROD_COLS, "")
+        if not p_name:
             continue
 
-        c_name = str(row.get("customer") or row.get("customer_name") or "").strip().lower()
+        if p_name.lower().startswith(("total", "subtotal", "grand total", "summary", "sl.no", "s.no", "s.no.")):
+            continue
+
+        c_name = find_val(row, CUST_COLS, "").lower()
         cust_id = customers_map.get(c_name, default_cust_id)
 
-        raw_hsn = str(row.get("hsn_code") or row.get("hsn") or row.get("hs_code") or "").strip()
+        raw_hsn = find_val(row, HSN_COLS, "")
         hsn_code = assign_sequential_hsn(shipment_id, p_name, raw_hsn, db, cat_counts)
 
+        raw_qty = find_val(row, QTY_COLS, "1")
         try:
-            qty = Decimal(str(row.get("quantity") or row.get("required_quantity") or row.get("qty") or 1))
+            qty = Decimal(str(raw_qty).replace(",", ""))
+            if qty <= 0: qty = Decimal("1.0")
         except Exception:
             qty = Decimal("1.0")
 
-        unit = str(row.get("unit") or "PCS").strip().upper()
+        unit = find_val(row, UNIT_COLS, "PCS").upper()
         if unit == "NAN": unit = "PCS"
+
+        notes_val = find_val(row, NOTES_COLS, "Uploaded via Excel")
 
         req = models.ShipmentCustomerRequirement(
             shipment_id=shipment_id,
@@ -306,7 +382,7 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
             hsn_code=hsn_code,
             required_quantity=qty,
             unit=unit,
-            notes="Uploaded via Excel"
+            notes=notes_val
         )
         db.add(req)
         db.flush()

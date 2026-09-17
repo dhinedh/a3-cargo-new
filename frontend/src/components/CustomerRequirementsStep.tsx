@@ -36,6 +36,7 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
+  const [selectedReqIds, setSelectedReqIds] = useState<number[]>([]);
 
   // Form states
   const [selectedCustomerId, setSelectedCustomerId] = useState<number>(customers[0]?.id || 0);
@@ -303,9 +304,50 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
     if (!window.confirm('Are you sure you want to delete this customer requirement?')) return;
     try {
       await apiClient.deleteCustomerRequirement(shipmentId, id);
+      setSelectedReqIds(prev => prev.filter(i => i !== id));
       fetchRequirements();
     } catch (err) {
       alert('Failed to delete requirement');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedReqIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedReqIds.length} selected requirement(s)?`)) return;
+    try {
+      await apiClient.bulkDeleteRequirements(shipmentId, selectedReqIds);
+      setSelectedReqIds([]);
+      fetchRequirements();
+    } catch (err) {
+      alert('Failed to delete selected requirements');
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (requirements.length === 0) return;
+    if (!window.confirm(`Are you sure you want to clear ALL ${requirements.length} customer requirements? This action cannot be undone.`)) return;
+    try {
+      await apiClient.clearAllRequirements(shipmentId);
+      setSelectedReqIds([]);
+      fetchRequirements();
+    } catch (err) {
+      alert('Failed to clear requirements');
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedReqIds.length === requirements.length) {
+      setSelectedReqIds([]);
+    } else {
+      setSelectedReqIds(requirements.map(r => r.id));
+    }
+  };
+
+  const toggleSelectRow = (id: number) => {
+    if (selectedReqIds.includes(id)) {
+      setSelectedReqIds(prev => prev.filter(i => i !== id));
+    } else {
+      setSelectedReqIds(prev => [...prev, id]);
     }
   };
 
@@ -315,13 +357,15 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
 
     try {
       setUploading(true);
-      await apiClient.uploadExcelRequirements(shipmentId, file);
+      const imported = await apiClient.uploadExcelRequirements(shipmentId, file);
       fetchRequirements();
-      alert('Requirements imported & auto-enriched with HSN codes!');
-    } catch (err) {
-      alert('Failed to upload Excel requirements file');
+      alert(`Successfully imported ${imported?.length || 0} requirement(s) & auto-enriched with HSN codes!`);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || 'Failed to upload requirements file';
+      alert(`Upload Error: ${msg}`);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -374,7 +418,7 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
 
           <label className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer border border-slate-200">
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>{uploading ? 'Importing...' : 'Upload Excel'}</span>
+            <span>{uploading ? 'Importing Excel/CSV...' : 'Upload Excel / CSV'}</span>
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -383,6 +427,17 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
               className="hidden"
             />
           </label>
+
+          {requirements.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Delete all customer requirements for this shipment"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>Clear All</span>
+            </button>
+          )}
 
           <button
             onClick={handleOpenAddModal}
@@ -394,6 +449,36 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
         </div>
       </div>
 
+      {/* Bulk Selection Actions Bar */}
+      {selectedReqIds.length > 0 && (
+        <div className="bg-blue-900 text-white p-3 px-5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <span className="px-2.5 py-1 bg-blue-700 text-blue-100 rounded-lg text-xs font-extrabold font-mono">
+              {selectedReqIds.length} of {requirements.length} Selected
+            </span>
+            <span className="text-xs text-blue-200 font-medium hidden sm:inline">
+              Perform batch operations on selected customer requirement rows
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkDelete}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Selected ({selectedReqIds.length})</span>
+            </button>
+            <button
+              onClick={() => setSelectedReqIds([])}
+              className="px-3 py-2 bg-blue-800 hover:bg-blue-700 text-blue-200 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+            >
+              Deselect All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Table Content */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         {loading ? (
@@ -403,7 +488,7 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
             <AlertCircle className="w-8 h-8 text-slate-300 mx-auto" />
             <div className="text-sm font-bold text-slate-700">No Requirements Entered Yet</div>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Add customer demand requirements manually or upload an Excel sheet to get started.
+              Add customer demand requirements manually or upload an Excel / CSV sheet to get started.
             </p>
             <button
               onClick={handleOpenAddModal}
@@ -418,6 +503,15 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedReqIds.length === requirements.length && requirements.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      title="Select / Deselect All Requirements"
+                    />
+                  </th>
                   <th className="py-3 px-4">Customer</th>
                   <th className="py-3 px-4">Product / SKU Name</th>
                   <th className="py-3 px-4">HSN Code</th>
@@ -430,8 +524,17 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {requirements.map((req) => {
                   const cust = customers.find(c => c.id === req.customer_id);
+                  const isSelected = selectedReqIds.includes(req.id);
                   return (
-                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={req.id} className={`transition-colors ${isSelected ? 'bg-blue-50/80 border-l-4 border-blue-600' : 'hover:bg-slate-50/50'}`}>
+                    <td className="py-3 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectRow(req.id)}
+                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 px-4">
                       <span className="font-semibold text-slate-800">{cust?.name || `Customer #${req.customer_id}`}</span>
                     </td>

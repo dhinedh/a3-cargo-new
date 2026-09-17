@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Optional
 from decimal import Decimal
 import io
@@ -58,9 +58,44 @@ def create_vendor_allocation(shipment_id: int, payload: schemas.ShipmentVendorAl
 
 @router.get("/{shipment_id}/proforma-items", response_model=List[schemas.ShipmentVendorProformaItemResponse])
 def get_vendor_proforma_items(shipment_id: int, db: Session = Depends(get_db)):
-    return db.query(models.ShipmentVendorProformaItem).filter(
+    items = db.query(models.ShipmentVendorProformaItem).filter(
         models.ShipmentVendorProformaItem.shipment_id == shipment_id
     ).all()
+
+    dirty = False
+    for item in items:
+        # Auto-sanitize any legacy negative weights or quantities
+        if item.net_weight_kg is not None and item.net_weight_kg < 0:
+            item.net_weight_kg = abs(item.net_weight_kg)
+            dirty = True
+        if item.gross_weight_kg is not None and item.gross_weight_kg < 0:
+            item.gross_weight_kg = abs(item.gross_weight_kg)
+            dirty = True
+        if item.unit_weight_val is not None and item.unit_weight_val < 0:
+            item.unit_weight_val = abs(item.unit_weight_val)
+            dirty = True
+        if item.proforma_qty is not None and item.proforma_qty < 0:
+            item.proforma_qty = abs(item.proforma_qty)
+            dirty = True
+        if item.proforma_price is not None and item.proforma_price < 0:
+            item.proforma_price = abs(item.proforma_price)
+            dirty = True
+        
+        # Auto-compute net weight if missing/zero but unit weight & qty exist
+        if (item.net_weight_kg is None or item.net_weight_kg == Decimal("0.0")) and item.unit_weight_val and item.unit_weight_val > 0 and item.proforma_qty and item.proforma_qty > 0:
+            item.net_weight_kg = abs(item.unit_weight_val * item.proforma_qty)
+            item.gross_weight_kg = abs(item.net_weight_kg * Decimal("1.05"))
+            dirty = True
+
+        # Auto-compute total_payable if zero or missing
+        if (item.total_payable is None or item.total_payable == Decimal("0.0")) and item.proforma_qty and item.proforma_price:
+            item.total_payable = abs(item.proforma_qty * item.proforma_price)
+            dirty = True
+
+    if dirty:
+        db.commit()
+
+    return items
 
 @router.post("/{shipment_id}/proforma-items", response_model=schemas.ShipmentVendorProformaItemResponse)
 def create_vendor_proforma_item(shipment_id: int, payload: schemas.ShipmentVendorProformaItemCreate, db: Session = Depends(get_db)):
@@ -68,13 +103,43 @@ def create_vendor_proforma_item(shipment_id: int, payload: schemas.ShipmentVendo
     if not s:
         raise HTTPException(status_code=404, detail="Shipment not found")
 
-    net_wt = payload.net_weight_kg
-    if not net_wt or net_wt == Decimal("0.0"):
-        net_wt = payload.unit_weight_val * payload.proforma_qty if payload.unit_weight_val > 0 else Decimal("0.0")
+    p_qty = abs(payload.proforma_qty) if payload.proforma_qty else Decimal("1.0")
+    c_count = abs(payload.cartons_count) if payload.cartons_count else Decimal("0.0")
+    u_per_c = abs(payload.units_per_carton) if payload.units_per_carton else Decimal("0.0")
 
-    gross_wt = payload.gross_weight_kg
+    if p_qty == Decimal("0.0") and c_count > 0 and u_per_c > 0:
+        p_qty = c_count * u_per_c
+
+    u_wt = abs(payload.unit_weight_val) if payload.unit_weight_val else Decimal("0.0")
+    net_wt = abs(payload.net_weight_kg)
+    if not net_wt or net_wt == Decimal("0.0"):
+        if c_count > 0 and u_per_c > 0 and u_wt > 0:
+            net_wt = abs(c_count * u_per_c * u_wt)
+        elif u_wt > 0 and p_qty > 0:
+            net_wt = abs(u_wt * p_qty)
+        else:
+            net_wt = Decimal("0.0")
+
+    if u_wt == Decimal("0.0") and net_wt > 0 and p_qty > 0:
+        u_wt = net_wt / p_qty
+
+    gross_wt = abs(payload.gross_weight_kg)
     if not gross_wt or gross_wt == Decimal("0.0"):
         gross_wt = net_wt * Decimal("1.05") if net_wt > 0 else Decimal("0.0")
+
+    price = abs(payload.proforma_price) if payload.proforma_price else Decimal("0.0")
+    price_per_kg_input = abs(payload.price_per_kg) if hasattr(payload, 'price_per_kg') and payload.price_per_kg else Decimal("0.0")
+    if price == Decimal("0.0") and price_per_kg_input > 0:
+        if u_wt > 0:
+            price = price_per_kg_input * u_wt
+        elif net_wt > 0 and p_qty > 0:
+            price = (price_per_kg_input * net_wt) / p_qty
+        else:
+            price = price_per_kg_input
+
+    total_pay = abs(payload.total_payable) if hasattr(payload, 'total_payable') and payload.total_payable else Decimal("0.0")
+    if not total_pay or total_pay == Decimal("0.0"):
+        total_pay = p_qty * price
 
     item = models.ShipmentVendorProformaItem(
         shipment_id=shipment_id,
@@ -83,20 +148,25 @@ def create_vendor_proforma_item(shipment_id: int, payload: schemas.ShipmentVendo
         product_name=payload.product_name,
         sku=payload.sku,
         hsn_code=payload.hsn_code,
-        proforma_qty=payload.proforma_qty,
-        cartons_count=payload.cartons_count,
-        units_per_carton=payload.units_per_carton,
-        unit_weight_val=payload.unit_weight_val,
+        proforma_qty=p_qty,
+        cartons_count=c_count,
+        units_per_carton=u_per_c,
+        unit_weight_val=u_wt,
         unit_weight_unit=payload.unit_weight_unit or "KG",
         net_weight_kg=net_wt,
         gross_weight_kg=gross_wt,
-        proforma_price=payload.proforma_price,
+        proforma_price=price,
+        mrp=abs(payload.mrp) if payload.mrp else Decimal("0.0"),
+        discount_pct=abs(payload.discount_pct) if payload.discount_pct else Decimal("0.0"),
+        gst_pct=abs(payload.gst_pct) if payload.gst_pct else Decimal("18.0"),
+        total_payable=total_pay,
         currency=payload.currency or "INR",
         notes=payload.notes or "Manual Vendor Proforma Entry"
     )
     db.add(item)
     db.commit()
     db.refresh(item)
+    sync_proforma_and_recalculate_duties(shipment_id, db)
     return item
 
 @router.put("/{shipment_id}/proforma-items/{item_id}", response_model=schemas.ShipmentVendorProformaItemResponse)
@@ -108,36 +178,66 @@ def update_vendor_proforma_item(shipment_id: int, item_id: int, payload: schemas
     if not item:
         raise HTTPException(status_code=404, detail="Proforma item not found")
 
-    net_wt = payload.net_weight_kg
+    p_qty = abs(payload.proforma_qty) if payload.proforma_qty else Decimal("1.0")
+    c_count = abs(payload.cartons_count) if payload.cartons_count else Decimal("0.0")
+    u_per_c = abs(payload.units_per_carton) if payload.units_per_carton else Decimal("0.0")
+
+    if p_qty == Decimal("0.0") and c_count > 0 and u_per_c > 0:
+        p_qty = c_count * u_per_c
+
+    u_wt = abs(payload.unit_weight_val) if payload.unit_weight_val else Decimal("0.0")
+    net_wt = abs(payload.net_weight_kg)
     if not net_wt or net_wt == Decimal("0.0"):
-        if payload.cartons_count > 0 and payload.units_per_carton > 0 and payload.unit_weight_val > 0:
-            net_wt = payload.cartons_count * payload.units_per_carton * payload.unit_weight_val
-        elif payload.unit_weight_val > 0 and payload.proforma_qty > 0:
-            net_wt = payload.unit_weight_val * payload.proforma_qty
+        if c_count > 0 and u_per_c > 0 and u_wt > 0:
+            net_wt = abs(c_count * u_per_c * u_wt)
+        elif u_wt > 0 and p_qty > 0:
+            net_wt = abs(u_wt * p_qty)
         else:
             net_wt = Decimal("0.0")
 
-    gross_wt = payload.gross_weight_kg
+    if u_wt == Decimal("0.0") and net_wt > 0 and p_qty > 0:
+        u_wt = net_wt / p_qty
+
+    gross_wt = abs(payload.gross_weight_kg)
     if not gross_wt or gross_wt == Decimal("0.0"):
         gross_wt = net_wt * Decimal("1.05") if net_wt > 0 else Decimal("0.0")
+
+    price = abs(payload.proforma_price) if payload.proforma_price else Decimal("0.0")
+    price_per_kg_input = abs(payload.price_per_kg) if hasattr(payload, 'price_per_kg') and payload.price_per_kg else Decimal("0.0")
+    if price == Decimal("0.0") and price_per_kg_input > 0:
+        if u_wt > 0:
+            price = price_per_kg_input * u_wt
+        elif net_wt > 0 and p_qty > 0:
+            price = (price_per_kg_input * net_wt) / p_qty
+        else:
+            price = price_per_kg_input
+
+    total_pay = abs(payload.total_payable) if hasattr(payload, 'total_payable') and payload.total_payable else Decimal("0.0")
+    if not total_pay or total_pay == Decimal("0.0"):
+        total_pay = p_qty * price
 
     item.vendor_id = payload.vendor_id
     item.product_name = payload.product_name
     item.sku = payload.sku
     item.hsn_code = payload.hsn_code
-    item.proforma_qty = payload.proforma_qty
-    item.cartons_count = payload.cartons_count
-    item.units_per_carton = payload.units_per_carton
-    item.unit_weight_val = payload.unit_weight_val
+    item.proforma_qty = p_qty
+    item.cartons_count = c_count
+    item.units_per_carton = u_per_c
+    item.unit_weight_val = u_wt
     item.unit_weight_unit = payload.unit_weight_unit or "KG"
     item.net_weight_kg = net_wt
     item.gross_weight_kg = gross_wt
-    item.proforma_price = payload.proforma_price
+    item.proforma_price = price
+    item.mrp = abs(payload.mrp) if payload.mrp else Decimal("0.0")
+    item.discount_pct = abs(payload.discount_pct) if payload.discount_pct else Decimal("0.0")
+    item.gst_pct = abs(payload.gst_pct) if payload.gst_pct else Decimal("18.0")
+    item.total_payable = total_pay
     item.currency = payload.currency or "INR"
     item.notes = payload.notes
 
     db.commit()
     db.refresh(item)
+    sync_proforma_and_recalculate_duties(shipment_id, db)
     return item
 
 @router.delete("/{shipment_id}/proforma-items/{item_id}")
@@ -151,6 +251,7 @@ def delete_vendor_proforma_item(shipment_id: int, item_id: int, db: Session = De
 
     db.delete(item)
     db.commit()
+    sync_proforma_and_recalculate_duties(shipment_id, db)
     return {"message": "Proforma item deleted successfully"}
 
 @router.post("/{shipment_id}/proforma/upload-excel", response_model=List[schemas.ShipmentVendorProformaItemResponse])
@@ -228,17 +329,17 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
         if sku_val.lower() == "nan": sku_val = ""
 
         try:
-            qty = Decimal(str(row.get("proforma_qty") or row.get("quantity") or row.get("qty") or 0))
+            qty = abs(Decimal(str(row.get("proforma_qty") or row.get("quantity") or row.get("qty") or row.get("total_units") or row.get("total_qty") or 0)))
         except Exception:
             qty = Decimal("0.0")
 
         try:
-            cartons = Decimal(str(row.get("cartons") or row.get("cartons_count") or row.get("no_of_cartons") or row.get("bags") or 0))
+            cartons = abs(Decimal(str(row.get("cartons") or row.get("cartons_count") or row.get("no_of_cartons") or row.get("bags") or row.get("ctns") or row.get("no_of_bags") or 0)))
         except Exception:
             cartons = Decimal("0.0")
 
         try:
-            units_per_c = Decimal(str(row.get("units_per_carton") or row.get("units_per_ctn") or row.get("units_per_box") or row.get("units_per_bag") or row.get("ctn_size") or 0))
+            units_per_c = abs(Decimal(str(row.get("units_per_carton") or row.get("units_per_ctn") or row.get("units_per_box") or row.get("units_per_bag") or row.get("ctn_size") or row.get("pack_size") or 0)))
         except Exception:
             units_per_c = Decimal("0.0")
 
@@ -250,34 +351,52 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
             qty = Decimal("1.0")
 
         try:
-            u_weight = Decimal(str(row.get("unit_weight") or row.get("unit_weight_val") or row.get("weight") or 0))
+            u_weight = abs(Decimal(str(row.get("unit_weight") or row.get("unit_weight_val") or row.get("unit_wt") or row.get("unit_weight_kg") or row.get("weight") or row.get("unit_wt_kg") or row.get("weight_per_unit") or 0)))
         except Exception:
             u_weight = Decimal("0.0")
 
         try:
-            net_wt = Decimal(str(row.get("net_weight") or row.get("net_weight_kg") or row.get("net_wt") or 0))
+            net_wt = abs(Decimal(str(row.get("net_weight") or row.get("net_weight_kg") or row.get("net_wt") or row.get("net_wt_kg") or row.get("total_net_weight") or 0)))
         except Exception:
             net_wt = Decimal("0.0")
 
         if not net_wt or net_wt == Decimal("0.0"):
             if cartons > 0 and units_per_c > 0 and u_weight > 0:
-                net_wt = cartons * units_per_c * u_weight
+                net_wt = abs(cartons * units_per_c * u_weight)
             elif qty > 0 and u_weight > 0:
-                net_wt = qty * u_weight
+                net_wt = abs(qty * u_weight)
+
+        if u_weight == Decimal("0.0") and net_wt > 0 and qty > 0:
+            u_weight = net_wt / qty
 
         try:
-            gross_wt = Decimal(str(row.get("gross_weight") or row.get("gross_weight_kg") or row.get("gross_wt") or 0))
+            gross_wt = abs(Decimal(str(row.get("gross_weight") or row.get("gross_weight_kg") or row.get("gross_wt") or row.get("gross_wt_kg") or row.get("total_gross_weight") or 0)))
         except Exception:
             gross_wt = Decimal("0.0")
 
         if not gross_wt or gross_wt == Decimal("0.0"):
             if net_wt > 0:
-                gross_wt = net_wt * Decimal("1.05")
+                gross_wt = abs(net_wt * Decimal("1.05"))
 
         try:
-            price = Decimal(str(row.get("proforma_price") or row.get("price") or row.get("cost") or row.get("rate") or row.get("vendor_unit_price") or 0))
+            price = abs(Decimal(str(row.get("proforma_price") or row.get("price") or row.get("cost") or row.get("rate") or row.get("vendor_unit_price") or row.get("unit_price") or row.get("net_price") or row.get("net_unit_price") or row.get("price_per_unit") or row.get("rate_per_unit") or row.get("unit_rate") or row.get("inr_price") or row.get("price_inr") or 0)))
         except Exception:
             price = Decimal("0.0")
+
+        try:
+            price_per_kg_val = abs(Decimal(str(row.get("price_per_kg") or row.get("kg_price") or row.get("price_kg") or row.get("price/kg") or row.get("rate_per_kg") or row.get("rate/kg") or row.get("net_price_per_kg") or row.get("cost_per_kg") or row.get("inr_per_kg") or 0)))
+        except Exception:
+            price_per_kg_val = Decimal("0.0")
+
+        if price == Decimal("0.0") and price_per_kg_val > 0:
+            if u_weight > 0:
+                price = price_per_kg_val * u_weight
+            elif net_wt > 0 and qty > 0:
+                price = (price_per_kg_val * net_wt) / qty
+            else:
+                price = price_per_kg_val
+
+        total_pay = qty * price
 
         notes = str(row.get("notes") or row.get("remarks") or "Imported via Vendor PI Excel").strip()
 
@@ -296,6 +415,7 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
             net_weight_kg=net_wt,
             gross_weight_kg=gross_wt,
             proforma_price=price,
+            total_payable=total_pay,
             currency="INR",
             notes=notes
         )
@@ -305,6 +425,7 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
     db.commit()
     for item in created_items:
         db.refresh(item)
+    sync_proforma_and_recalculate_duties(shipment_id, db)
     return created_items
 
 @router.get("/{shipment_id}/proforma/export/excel")
@@ -322,6 +443,16 @@ def export_stage2_proforma_excel(shipment_id: int, db: Session = Depends(get_db)
         v_name = item.vendor.name if item.vendor else f"Vendor #{item.vendor_id}"
         v_code = item.vendor.code if item.vendor else ""
         req_id = item.allocation.requirement_id if item.allocation else ""
+        
+        net_w = abs(float(item.net_weight_kg or 0.0))
+        unit_w = abs(float(item.unit_weight_val or 0.0))
+        u_price = abs(float(item.proforma_price or 0.0))
+        qty_val = abs(float(item.proforma_qty or 1.0))
+        tot_pay = item.total_payable if item.total_payable else (qty_val * u_price)
+        tot_pay_val = abs(float(tot_pay or 0.0))
+        
+        price_per_kg = tot_pay_val / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
+
         data.append({
             "S.No": idx,
             "Requirement ID": req_id,
@@ -330,13 +461,16 @@ def export_stage2_proforma_excel(shipment_id: int, db: Session = Depends(get_db)
             "Product Name": item.product_name,
             "SKU": item.sku or "",
             "HSN Code": item.hsn_code or "",
-            "Proforma Qty": float(item.proforma_qty),
-            "Cartons Count": float(item.cartons_count),
-            "Units / Carton": float(item.units_per_carton),
-            "Net Weight (KG)": float(item.net_weight_kg),
-            "Gross Weight (KG)": float(item.gross_weight_kg),
-            "Proforma Unit Price (INR)": float(item.proforma_price),
-            "Currency": item.currency,
+            "Proforma Qty": qty_val,
+            "Cartons Count": abs(float(item.cartons_count or 0.0)),
+            "Units / Carton": abs(float(item.units_per_carton or 0.0)),
+            "Unit Weight (KG)": unit_w,
+            "Net Weight (KG)": net_w,
+            "Gross Weight (KG)": abs(float(item.gross_weight_kg or 0.0)),
+            "Proforma Unit Price": u_price,
+            "Net Price / KG": round(price_per_kg, 2),
+            "Total Amount": round(tot_pay_val, 2),
+            "Currency": item.currency or "INR",
             "Notes": item.notes or ""
         })
 
@@ -364,38 +498,18 @@ def export_stage2_proforma_pdf(shipment_id: int, db: Session = Depends(get_db)):
     ).all()
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
     story = []
     styles = getSampleStyleSheet()
 
-    title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=16, leading=20, textColor=colors.HexColor("#1e293b"))
+    title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=15, leading=19, textColor=colors.HexColor("#1e293b"))
     story.append(Paragraph(f"Stage 2: Vendor Proforma & Packing Audit Report", title_style))
     story.append(Paragraph(f"Shipment #: {s.shipment_no} | Date: {s.shipment_date or 'N/A'}", styles['Normal']))
-    story.append(Spacer(1, 14))
+    story.append(Spacer(1, 12))
 
-    cell_style = ParagraphStyle(
-        'TableCell',
-        parent=styles['Normal'],
-        fontSize=8,
-        leading=10,
-        textColor=colors.HexColor("#0f172a")
-    )
-    cell_style_bold = ParagraphStyle(
-        'TableCellBold',
-        parent=styles['Normal'],
-        fontSize=8,
-        leading=10,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor("#0f172a")
-    )
-    header_style = ParagraphStyle(
-        'HeaderStyle',
-        parent=styles['Normal'],
-        fontSize=8.5,
-        leading=11,
-        fontName='Helvetica-Bold',
-        textColor=colors.white
-    )
+    cell_style = ParagraphStyle('TableCell', parent=styles['Normal'], fontSize=7.5, leading=9.5, textColor=colors.HexColor("#0f172a"))
+    cell_style_bold = ParagraphStyle('TableCellBold', parent=styles['Normal'], fontSize=7.5, leading=9.5, fontName='Helvetica-Bold', textColor=colors.HexColor("#0f172a"))
+    header_style = ParagraphStyle('HeaderStyle', parent=styles['Normal'], fontSize=8, leading=10, fontName='Helvetica-Bold', textColor=colors.white)
 
     table_data = [[
         Paragraph("S.No", header_style),
@@ -404,34 +518,47 @@ def export_stage2_proforma_pdf(shipment_id: int, db: Session = Depends(get_db)):
         Paragraph("HSN", header_style),
         Paragraph("Qty", header_style),
         Paragraph("Cartons", header_style),
+        Paragraph("Unit Wt", header_style),
         Paragraph("Net Wt", header_style),
-        Paragraph("Gross Wt", header_style),
-        Paragraph("Unit Price", header_style)
+        Paragraph("Unit Price", header_style),
+        Paragraph("Net Price/KG", header_style),
+        Paragraph("Total Amount", header_style)
     ]]
 
     for idx, item in enumerate(items, 1):
         v_name = item.vendor.name if item.vendor else f"Vendor #{item.vendor_id}"
         currency_str = item.currency or "INR"
-        price_val = f"{currency_str} {float(item.proforma_price):,.2f}"
+        curr_sym = "$" if currency_str == "USD" else "₹"
+        
+        qty_val = abs(float(item.proforma_qty or 1.0))
+        unit_w = abs(float(item.unit_weight_val or 0.0))
+        net_w = abs(float(item.net_weight_kg or 0.0))
+        u_price = abs(float(item.proforma_price or 0.0))
+        tot_pay = item.total_payable if item.total_payable else (qty_val * u_price)
+        tot_pay_val = abs(float(tot_pay or 0.0))
+        
+        price_per_kg = tot_pay_val / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
 
         table_data.append([
             Paragraph(str(idx), cell_style),
             Paragraph(v_name, cell_style_bold),
             Paragraph(item.product_name, cell_style),
             Paragraph(item.hsn_code or "-", cell_style),
-            Paragraph(f"{float(item.proforma_qty):,}", cell_style),
-            Paragraph(f"{float(item.cartons_count):,}", cell_style),
-            Paragraph(f"{float(item.net_weight_kg):,.2f} kg", cell_style),
-            Paragraph(f"{float(item.gross_weight_kg):,.2f} kg", cell_style),
-            Paragraph(price_val, cell_style_bold)
+            Paragraph(f"{qty_val:,.0f}", cell_style),
+            Paragraph(f"{abs(float(item.cartons_count or 0)):,.0f}", cell_style),
+            Paragraph(f"{unit_w:.2f}kg", cell_style),
+            Paragraph(f"{net_w:,.2f}kg", cell_style),
+            Paragraph(f"{curr_sym}{u_price:,.2f}", cell_style_bold),
+            Paragraph(f"{curr_sym}{price_per_kg:,.2f}", cell_style_bold),
+            Paragraph(f"{curr_sym}{tot_pay_val:,.2f}", cell_style_bold)
         ])
 
-    t = Table(table_data, colWidths=[25, 110, 130, 55, 40, 45, 45, 45, 50])
+    t = Table(table_data, colWidths=[22, 85, 105, 45, 32, 35, 38, 42, 48, 52, 52])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('BOTTOMPADDING', (0,0), (-1,0), 6),
-        ('TOPPADDING', (0,0), (-1,0), 6),
+        ('BOTTOMPADDING', (0,0), (-1,0), 5),
+        ('TOPPADDING', (0,0), (-1,0), 5),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
@@ -541,13 +668,24 @@ def convert_pi_items_to_shipment_products(shipment_id: int, db: Session = Depend
             models.ShipmentProduct.product_name == pi.product_name
         ).first()
 
-        if not existing:
+        if existing:
+            existing.purchase_price = abs(Decimal(str(pi.proforma_price or 0.0)))
+            existing.quantity = abs(Decimal(str(pi.proforma_qty or 1.0)))
+            existing.net_weight_kg = abs(Decimal(str(pi.net_weight_kg or 0.0)))
+            existing.gross_weight_kg = abs(Decimal(str(pi.gross_weight_kg or 0.0)))
+            if pi.hsn_code:
+                existing.hsn_code = pi.hsn_code
+            if pi.cartons_count:
+                existing.no_bags_qty = abs(Decimal(str(pi.cartons_count)))
+            if pi.units_per_carton:
+                existing.pkt_size_g = abs(Decimal(str(pi.units_per_carton)))
+        else:
             # Auto lookup item entry or use PI HSN
             fav = db.query(models.ItemEntry).filter(
                 models.ItemEntry.item_name.ilike(f"%{pi.product_name}%")
             ).first()
 
-            hsn = fav.hs_code if (fav and hasattr(fav, 'hs_code') and fav.hs_code) else (pi.hsn_code or "1008.291")
+            hsn = pi.hsn_code or (fav.hs_code if (fav and hasattr(fav, 'hs_code') and fav.hs_code) else "1008.291")
             cat_name = fav.item_category if (fav and hasattr(fav, 'item_category') and fav.item_category) else "General Goods"
 
             sp = models.ShipmentProduct(
@@ -556,16 +694,16 @@ def convert_pi_items_to_shipment_products(shipment_id: int, db: Session = Depend
                 product_name=pi.product_name,
                 product_category=cat_name,
                 hsn_code=hsn,
-                quantity=float(pi.proforma_qty or 1.0),
-                weight_val=float(pi.unit_weight_val or 0.5),
+                quantity=abs(float(pi.proforma_qty or 1.0)),
+                weight_val=abs(float(pi.unit_weight_val or 0.5)),
                 weight_unit="KG",
                 unit="PCS",
-                purchase_price=float(pi.proforma_price or 0.0),
+                purchase_price=abs(float(pi.proforma_price or 0.0)),
                 currency="INR",
-                no_bags_qty=int(pi.cartons_count or 1),
-                pkt_size_g=float(pi.units_per_carton or 12.0),
-                net_weight_kg=float(pi.net_weight_kg or 0.0),
-                gross_weight_kg=float(pi.gross_weight_kg or 0.0)
+                no_bags_qty=abs(int(pi.cartons_count or 1)),
+                pkt_size_g=abs(float(pi.units_per_carton or 12.0)),
+                net_weight_kg=abs(float(pi.net_weight_kg or 0.0)),
+                gross_weight_kg=abs(float(pi.gross_weight_kg or 0.0))
             )
             db.add(sp)
 
@@ -578,6 +716,11 @@ def convert_pi_items_to_shipment_products(shipment_id: int, db: Session = Depend
         print(f"Recalculate shipment notice: {e}")
 
     try:
+        sync_preliminary_quotation(shipment_id, db)
+    except Exception as e:
+        print(f"Sync preliminary quotation notice: {e}")
+
+    try:
         from mongo_sync import sync_shipment_to_mongo
         sync_shipment_to_mongo(shipment_id)
     except Exception as e:
@@ -586,8 +729,16 @@ def convert_pi_items_to_shipment_products(shipment_id: int, db: Session = Depend
     # Return shipment details
     from routes.shipments import get_shipment_details
     return get_shipment_details(shipment_id, db)
-    from routes.shipments import get_shipment_details
-    return get_shipment_details(shipment_id, db)
+
+
+def sync_proforma_and_recalculate_duties(shipment_id: int, db: Session):
+    """
+    Triggers background conversion and duty recalculation whenever PI items change.
+    """
+    try:
+        convert_pi_items_to_shipment_products(shipment_id, db)
+    except Exception as e:
+        print(f"Background duty calculation notice: {e}")
 
 
 # ─── Vendor Payment & Tracking Endpoints ─────────────────────────────────────
@@ -606,7 +757,7 @@ def record_vendor_payment(
     payment_ref: str,
     payment_method: str = "BANK_TT",
     payment_type: str = "ADVANCE",
-    notes: str = None,
+    notes: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     s = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
@@ -1254,7 +1405,6 @@ def sync_preliminary_quotation(shipment_id: int, db: Session):
         models.ShipmentVendorProformaItem.shipment_id == shipment_id
     ).all()
 
-    rate = float(s.lkr_inr_rate or 4.0)
     margin = float(s.profit_margin_pct or 15.0)
 
     existing_items = db.query(models.CustomerQuotationItem).filter(
@@ -1263,11 +1413,27 @@ def sync_preliminary_quotation(shipment_id: int, db: Session):
 
     existing_by_name = {item.product_name.strip().lower(): item for item in existing_items}
 
+    # Fetch corresponding ShipmentProducts for calculated duty & total cost
+    products_by_name = {
+        p.product_name.strip().lower(): p
+        for p in db.query(models.ShipmentProduct).filter(models.ShipmentProduct.shipment_id == shipment_id).all()
+    }
+
     for pi in pi_items:
         p_name_clean = pi.product_name.strip().lower()
-        unit_inr = float(pi.proforma_price)
-        unit_lkr = unit_inr * rate * 1.30
-        selling_lkr = unit_lkr * (1 + margin / 100.0)
+        unit_inr = float(pi.proforma_price or 0.0)
+
+        sp = products_by_name.get(p_name_clean)
+
+        if sp and float(sp.total_cost_lkr or 0.0) > 0:
+            unit_lkr = float(sp.total_cost_lkr)
+            selling_lkr = float(sp.suggested_price) if float(sp.suggested_price or 0.0) > 0 else (
+                unit_lkr / (1.0 - margin / 100.0) if margin < 100 else unit_lkr * 1.15
+            )
+        else:
+            rate = float(s.lkr_inr_rate or 4.0)
+            unit_lkr = (unit_inr / rate if rate != 0 else unit_inr) * 1.30
+            selling_lkr = unit_lkr / (1.0 - margin / 100.0) if margin < 100 else unit_lkr * 1.15
 
         if p_name_clean in existing_by_name:
             q_item = existing_by_name[p_name_clean]
@@ -1309,8 +1475,37 @@ def get_preliminary_quotation(shipment_id: int, db: Session = Depends(get_db)):
         models.CustomerQuotationItem.shipment_id == shipment_id
     ).all()
 
+    products_by_name = {
+        p.product_name.strip().lower(): p
+        for p in db.query(models.ShipmentProduct).filter(models.ShipmentProduct.shipment_id == shipment_id).all()
+    }
+
     res = []
     for item in items:
+        sp = products_by_name.get(item.product_name.strip().lower())
+        hsn = item.hsn_code or (sp.hsn_code if sp else "")
+
+        tariff_match = None
+        if hsn.strip():
+            raw_hsn = hsn.strip()
+            clean_hsn = raw_hsn.replace(".", "")
+            tariff_match = db.query(models.TariffLine).filter(
+                or_(
+                    models.TariffLine.hs_code == raw_hsn,
+                    models.TariffLine.hs_code == clean_hsn,
+                    models.TariffLine.hs_code.like(f"{clean_hsn}%")
+                ),
+                or_(
+                    models.TariffLine.general_duty_rate.isnot(None),
+                    models.TariffLine.vat_rate.isnot(None),
+                    models.TariffLine.pal_rate.isnot(None),
+                    models.TariffLine.cess_rate.isnot(None)
+                )
+            ).first()
+
+        is_hsn_unresolved = (tariff_match is None)
+        hsn_status = "NEEDS_RESOLUTION" if is_hsn_unresolved else "RESOLVED"
+
         res.append({
             "id": item.id,
             "shipment_id": item.shipment_id,
@@ -1326,7 +1521,11 @@ def get_preliminary_quotation(shipment_id: int, db: Session = Depends(get_db)):
             "estimated_selling_price_lkr": float(item.estimated_selling_price_lkr),
             "customer_target_price": float(item.customer_target_price) if item.customer_target_price else None,
             "approval_status": item.approval_status,
-            "notes": item.notes
+            "notes": item.notes,
+            "is_hsn_unresolved": is_hsn_unresolved,
+            "hsn_status": hsn_status,
+            "general_duty_rate": sp.general_duty_rate if (sp and sp.general_duty_rate) else (tariff_match.general_duty_rate if tariff_match else None),
+            "calculated_duty_lkr": float(sp.calculated_duty_lkr) if (sp and sp.calculated_duty_lkr) else 0.0,
         })
     return res
 
@@ -1467,3 +1666,162 @@ def get_quotation_history(shipment_id: int, db: Session = Depends(get_db)):
             "created_at": l.created_at
         })
     return res
+
+
+# ─── Quotation & Cost Simulator ───────────────────────────────────────────────
+
+@router.post("/simulate-quotation", response_model=schemas.QuotationSimulationResponse)
+def simulate_quotation(payload: schemas.QuotationSimulationRequest, db: Session = Depends(get_db)):
+    from calculation_engine import parse_percentage_rate
+    from routes.requirements import auto_map_hsn_code
+
+    p_name = payload.product_name.strip()
+    raw_hsn = (payload.hsn_code or "").strip()
+
+    # 1. Resolve HSN Code & Tariff Line
+    hsn_code = raw_hsn
+    if not hsn_code:
+        mapped_hsn = auto_map_hsn_code(p_name, db)
+        hsn_code = mapped_hsn or ""
+
+    tariff_line = None
+    if hsn_code:
+        clean_hsn = hsn_code.replace(".", "")
+        tariff_line = db.query(models.TariffLine).filter(
+            or_(
+                models.TariffLine.hs_code == hsn_code,
+                models.TariffLine.hs_code == clean_hsn,
+                models.TariffLine.hs_code.like(f"{clean_hsn}%")
+            )
+        ).first()
+
+    is_hsn_unresolved = (tariff_line is None) or (
+        not tariff_line.general_duty_rate and not tariff_line.vat_rate and not tariff_line.pal_rate and not tariff_line.cess_rate
+    )
+    hsn_status = "NEEDS_RESOLUTION" if is_hsn_unresolved else "RESOLVED"
+
+    # 2. Currency Rates & Inputs
+    purchase_price = float(payload.purchase_price or 0.0)
+    curr = (payload.purchase_currency or "INR").upper()
+    lkr_inr_rate = float(payload.lkr_inr_rate or 4.0)
+    usd_lkr_rate = float(payload.usd_lkr_rate or 300.0)
+    margin_pct = float(payload.profit_margin_pct or 15.0)
+    margin_mode = payload.margin_mode or "MARGIN_ON_REVENUE"
+
+    qty = float(payload.quantity or 1.0)
+    containers = float(payload.container_count or 1.0)
+    net_wt_kg = float(payload.net_weight_kg or qty)
+    gross_wt_kg = float(payload.gross_weight_kg or (net_wt_kg * 1.05))
+
+    # Base price in LKR per unit
+    if curr == "LKR":
+        base_price_lkr = purchase_price
+    elif curr == "INR":
+        base_price_lkr = purchase_price / lkr_inr_rate if lkr_inr_rate != 0 else purchase_price
+    elif curr == "USD":
+        base_price_lkr = purchase_price * usd_lkr_rate
+    else:
+        base_price_lkr = purchase_price
+
+    # 3. Freight & Port Expenses Allocation
+    total_freight_lkr = (float(payload.freight_expense_inr or 0.0) / lkr_inr_rate if lkr_inr_rate != 0 else float(payload.freight_expense_inr or 0.0)) + float(payload.freight_expense_lkr or 0.0)
+    per_unit_freight_lkr = total_freight_lkr / qty if qty > 0 else 0.0
+
+    total_port_lkr = float(payload.port_expense_lkr or 0.0)
+    per_unit_port_lkr = total_port_lkr / qty if qty > 0 else 0.0
+
+    # 4. Duty Calculations from Tariff Line
+    gen_duty_pct = float(parse_percentage_rate(tariff_line.general_duty_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
+    vat_pct = float(parse_percentage_rate(tariff_line.vat_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
+    pal_pct = float(parse_percentage_rate(tariff_line.pal_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
+    cess_pct = float(parse_percentage_rate(tariff_line.cess_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
+    sscl_pct = float(parse_percentage_rate(tariff_line.sscl_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
+    scl_val = float(parse_percentage_rate(tariff_line.scl_rate, Decimal(str(base_price_lkr)))) if (tariff_line and tariff_line.scl_rate) else 0.0
+
+    if scl_val > 0:
+        per_unit_duty_lkr = base_price_lkr * (scl_val / 100.0)
+    else:
+        total_duty_pct = gen_duty_pct + vat_pct + pal_pct + cess_pct + sscl_pct
+        per_unit_duty_lkr = base_price_lkr * (total_duty_pct / 100.0)
+
+    total_duty_lkr = per_unit_duty_lkr * qty
+
+    # 5. Cost & Quotation Model
+    cnf_price_lkr = base_price_lkr + per_unit_freight_lkr
+    unit_cost_lkr = cnf_price_lkr + per_unit_duty_lkr + per_unit_port_lkr
+    total_cost_lkr = unit_cost_lkr * qty
+
+    margin_decimal = margin_pct / 100.0
+    if margin_mode == "MARKUP_ON_COST":
+        suggested_selling_price_lkr = unit_cost_lkr * (1.0 + margin_decimal)
+    else:
+        if margin_decimal >= 1.0: margin_decimal = 0.99
+        suggested_selling_price_lkr = unit_cost_lkr / (1.0 - margin_decimal)
+
+    total_sales_revenue_lkr = suggested_selling_price_lkr * qty
+    predicted_profit_lkr = total_sales_revenue_lkr - total_cost_lkr
+    profit_per_kg_lkr = predicted_profit_lkr / net_wt_kg if net_wt_kg > 0 else 0.0
+
+    # 6. Formatted Shareable Summary Text
+    formatted_text = (
+        f"📦 MODEL QUOTATION SIMULATION\n"
+        f"----------------------------------------\n"
+        f"Product: {p_name}\n"
+        f"HSN Code: {hsn_code or 'Unassigned'} ({hsn_status})\n"
+        f"Quantity: {qty:,.0f} {payload.unit or 'KG'} ({containers:,.0f} Container)\n"
+        f"Net Weight: {net_wt_kg:,.1f} KG\n"
+        f"----------------------------------------\n"
+        f"Purchase Price: {curr} {purchase_price:,.2f} / unit (Base LKR {base_price_lkr:,.2f})\n"
+        f"Freight & Port Cost: LKR {total_freight_lkr + total_port_lkr:,.2f} (LKR {per_unit_freight_lkr + per_unit_port_lkr:,.2f}/unit)\n"
+        f"Estimated Duty: LKR {total_duty_lkr:,.2f} (LKR {per_unit_duty_lkr:,.2f}/unit)\n"
+        f"----------------------------------------\n"
+        f"Total Landed Cost: LKR {total_cost_lkr:,.2f} (LKR {unit_cost_lkr:,.2f}/unit)\n"
+        f"Suggested Selling Price: LKR {suggested_selling_price_lkr:,.2f} / unit\n"
+        f"Total Sales Revenue: LKR {total_sales_revenue_lkr:,.2f}\n"
+        f"Predicted Net Profit: LKR {predicted_profit_lkr:,.2f} (LKR {profit_per_kg_lkr:,.2f} / KG)\n"
+    )
+
+    return schemas.QuotationSimulationResponse(
+        product_name=p_name,
+        hsn_code=hsn_code or "",
+        hsn_status=hsn_status,
+        is_hsn_unresolved=is_hsn_unresolved,
+        tariff_description=tariff_line.description if tariff_line else "General Goods",
+        quantity=qty,
+        unit=payload.unit or "KG",
+        container_count=containers,
+        net_weight_kg=net_wt_kg,
+        gross_weight_kg=gross_wt_kg,
+        purchase_price=purchase_price,
+        purchase_currency=curr,
+        lkr_inr_rate=lkr_inr_rate,
+        usd_lkr_rate=usd_lkr_rate,
+        profit_margin_pct=margin_pct,
+        margin_mode=margin_mode,
+        general_duty_rate=tariff_line.general_duty_rate if tariff_line else None,
+        vat_rate=tariff_line.vat_rate if tariff_line else None,
+        pal_rate=tariff_line.pal_rate if tariff_line else None,
+        cess_rate=tariff_line.cess_rate if tariff_line else None,
+        sscl_rate=tariff_line.sscl_rate if tariff_line else None,
+        scl_rate=tariff_line.scl_rate if tariff_line else None,
+        gen_duty_pct=gen_duty_pct,
+        vat_pct=vat_pct,
+        pal_pct=pal_pct,
+        cess_pct=cess_pct,
+        sscl_pct=sscl_pct,
+        per_unit_duty_lkr=round(per_unit_duty_lkr, 2),
+        total_duty_lkr=round(total_duty_lkr, 2),
+        base_price_lkr=round(base_price_lkr, 2),
+        per_unit_freight_lkr=round(per_unit_freight_lkr, 2),
+        total_freight_lkr=round(total_freight_lkr, 2),
+        per_unit_port_lkr=round(per_unit_port_lkr, 2),
+        total_port_lkr=round(total_port_lkr, 2),
+        cnf_price_lkr=round(cnf_price_lkr, 2),
+        unit_cost_lkr=round(unit_cost_lkr, 2),
+        total_cost_lkr=round(total_cost_lkr, 2),
+        suggested_selling_price_lkr=round(suggested_selling_price_lkr, 2),
+        total_sales_revenue_lkr=round(total_sales_revenue_lkr, 2),
+        predicted_profit_lkr=round(predicted_profit_lkr, 2),
+        profit_per_kg_lkr=round(profit_per_kg_lkr, 2),
+        formatted_quotation_text=formatted_text
+    )

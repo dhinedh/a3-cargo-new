@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { ProductSearchSelect } from './ProductSearchSelect';
+import { QuotationSimulatorModal } from './QuotationSimulatorModal';
 import type { ProductOption } from './ProductSearchSelect';
 import type {
   ShipmentCustomerRequirement,
@@ -61,6 +62,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [uploadingPI, setUploadingPI] = useState<boolean>(false);
   const [converting, setConverting] = useState<boolean>(false);
+  const [showSimulatorModal, setShowSimulatorModal] = useState<boolean>(false);
   type TabType = 'allocation' | 'proforma' | 'quotation' | 'payments' | 'audit' | 'packing_lists';
   const [activeTab, setActiveTabState] = useState<TabType>(() => {
     if (activeSubTab) return activeSubTab;
@@ -695,13 +697,13 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
       const updated = { ...prev, [field]: val };
 
       // Recalculate weights & total quantity when packing fields change
-      const cartons = field === 'cartons_count' ? (Number(val) || 0) : prev.cartons_count;
-      const unitsPerCarton = field === 'units_per_carton' ? (Number(val) || 0) : prev.units_per_carton;
-      const uWeight = field === 'unit_weight_val' ? (Number(val) || 0) : prev.unit_weight_val;
+      const cartons = field === 'cartons_count' ? Math.abs(Number(val) || 0) : Math.abs(prev.cartons_count || 0);
+      const unitsPerCarton = field === 'units_per_carton' ? Math.abs(Number(val) || 0) : Math.abs(prev.units_per_carton || 0);
+      const uWeight = field === 'unit_weight_val' ? Math.abs(Number(val) || 0) : Math.abs(prev.unit_weight_val || 0);
 
       if (field === 'cartons_count' || field === 'units_per_carton' || field === 'unit_weight_val') {
         const totalUnits = cartons * unitsPerCarton;
-        const netWt = totalUnits * uWeight;
+        const netWt = Math.abs(totalUnits * uWeight);
         const grossWt = Number((netWt * 1.05).toFixed(2));
         updated.proforma_qty = totalUnits;
         updated.net_weight_kg = Number(netWt.toFixed(2));
@@ -885,6 +887,17 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Quotation Simulator Button */}
+          <button
+            type="button"
+            onClick={() => setShowSimulatorModal(true)}
+            className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+            title="Simulate landed cost, tariff duty & model quotation for container products"
+          >
+            <Calculator className="w-4 h-4 text-blue-200" />
+            <span>Quotation Simulator</span>
+          </button>
+
           {/* Quick Create New Vendor Button */}
           <button
             type="button"
@@ -1293,21 +1306,33 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
               <div className="overflow-x-auto border border-slate-200 rounded-xl">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                       <th className="py-3 px-3">Vendor</th>
                       <th className="py-3 px-3">Product Name</th>
                       <th className="py-3 px-3 text-center">Cartons</th>
-                      <th className="py-3 px-3 text-center">Units / Carton</th>
+                      <th className="py-3 px-3 text-center">Units / Ctn</th>
                       <th className="py-3 px-3 text-center">Total Qty</th>
-                      <th className="py-3 px-3 text-right">Unit Wt (KG)</th>
+                      <th className="py-3 px-3 text-right">Unit Wt</th>
                       <th className="py-3 px-3 text-right">Net Wt (KG)</th>
                       <th className="py-3 px-3 text-right">Gross Wt (KG)</th>
-                      <th className="py-3 px-3 text-right">Proforma Price</th>
+                      <th className="py-3 px-3 text-right">Unit Price</th>
+                      <th className="py-3 px-3 text-right text-emerald-900 bg-emerald-50/80 font-extrabold">Net Price / KG</th>
+                      <th className="py-3 px-3 text-right text-blue-950 bg-blue-50/80 font-extrabold">Total Amount</th>
                       <th className="py-3 px-3 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {proformaItems.map(item => (
+                    {proformaItems.map(item => {
+                      const netWt = Math.abs(item.net_weight_kg || 0);
+                      const grossWt = Math.abs(item.gross_weight_kg || 0);
+                      const unitWt = Math.abs(item.unit_weight_val || 0);
+                      const totalQty = Math.abs(item.proforma_qty || 0);
+                      const unitPrice = item.proforma_price || 0;
+                      const lineTotal = totalQty * unitPrice;
+                      const pricePerKg = netWt > 0 ? (lineTotal / netWt) : (unitWt > 0 ? (unitPrice / unitWt) : 0);
+                      const currSymbol = item.currency === 'USD' ? '$' : '₹';
+
+                      return (
                       <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                         <td className="py-3 px-3 font-semibold text-slate-800">
                           <div className="flex items-center gap-1.5">
@@ -1334,19 +1359,25 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                           </span>
                         </td>
                         <td className="py-3 px-3 text-center font-mono font-bold text-slate-900">
-                          {item.proforma_qty}
+                          {totalQty.toLocaleString('en-US')}
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-semibold">
-                          {item.unit_weight_val} {item.unit_weight_unit || 'KG'}
+                          {unitWt} {item.unit_weight_unit || 'KG'}
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-bold text-emerald-800 bg-emerald-50/40">
-                          {item.net_weight_kg} KG
+                          {netWt.toFixed(2)} KG
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-semibold text-slate-600">
-                          {item.gross_weight_kg} KG
+                          {grossWt.toFixed(2)} KG
                         </td>
-                        <td className="py-3 px-3 text-right font-mono font-bold text-blue-900">
-                          {item.currency === 'USD' ? '$' : '₹'}{item.proforma_price}
+                        <td className="py-3 px-3 text-right font-mono font-bold text-slate-800">
+                          {currSymbol}{unitPrice.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono font-extrabold text-emerald-800 bg-emerald-50/60">
+                          {currSymbol}{pricePerKg.toFixed(2)} / kg
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono font-extrabold text-blue-900 bg-blue-50/60">
+                          {currSymbol}{lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -1369,7 +1400,8 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -3208,7 +3240,11 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
           </span>
           <ArrowRight className="w-4 h-4" />
         </button>
-      </div>
+      {/* Quotation Simulator Modal */}
+      <QuotationSimulatorModal
+        isOpen={showSimulatorModal}
+        onClose={() => setShowSimulatorModal(false)}
+      />
     </div>
   );
 };

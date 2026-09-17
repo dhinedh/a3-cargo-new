@@ -605,6 +605,11 @@ class ShipmentVendorProformaItemBase(BaseModel):
     net_weight_kg: Decimal = Decimal("0.0")
     gross_weight_kg: Decimal = Decimal("0.0")
     proforma_price: Decimal = Decimal("0.0")
+    mrp: Optional[Decimal] = Decimal("0.0")
+    discount_pct: Optional[Decimal] = Decimal("0.0")
+    gst_pct: Optional[Decimal] = Decimal("0.0")
+    total_payable: Optional[Decimal] = Decimal("0.0")
+    price_per_kg: Optional[Decimal] = Decimal("0.0")
     currency: str = "INR"
     notes: Optional[str] = None
 
@@ -678,5 +683,79 @@ class DashboardSummaryResponse(BaseModel):
     total_loss_lkr: Decimal
     customer_summaries: List[CustomerProfitSummary]
     year_wise_summary: Dict[str, Dict[str, Any]]
+
+
+# ─── Quotation Simulator Schemas ──────────────────────────────────────────────
+
+class QuotationSimulationRequest(BaseModel):
+    product_name: str
+    hsn_code: Optional[str] = None
+    quantity: Decimal = Decimal("26000.0")
+    unit: Optional[str] = "KG"
+    container_count: Optional[Decimal] = Decimal("1.0")
+    net_weight_kg: Optional[Decimal] = Decimal("26000.0")
+    gross_weight_kg: Optional[Decimal] = Decimal("27300.0")
+    purchase_price: Decimal = Decimal("65.0")
+    purchase_currency: Optional[str] = "INR"
+    lkr_inr_rate: Optional[Decimal] = Decimal("4.0")
+    usd_lkr_rate: Optional[Decimal] = Decimal("300.0")
+    profit_margin_pct: Optional[Decimal] = Decimal("15.0")
+    margin_mode: Optional[str] = "MARGIN_ON_REVENUE"
+    freight_expense_inr: Optional[Decimal] = Decimal("85000.0")
+    freight_expense_lkr: Optional[Decimal] = Decimal("0.0")
+    port_expense_lkr: Optional[Decimal] = Decimal("45000.0")
+
+class QuotationSimulationResponse(BaseModel):
+    product_name: str
+    hsn_code: str
+    hsn_status: str
+    is_hsn_unresolved: bool
+    tariff_description: Optional[str] = None
+    
+    quantity: float
+    unit: str
+    container_count: float
+    net_weight_kg: float
+    gross_weight_kg: float
+    
+    purchase_price: float
+    purchase_currency: str
+    lkr_inr_rate: float
+    usd_lkr_rate: float
+    profit_margin_pct: float
+    margin_mode: str
+    
+    general_duty_rate: Optional[str] = None
+    vat_rate: Optional[str] = None
+    pal_rate: Optional[str] = None
+    cess_rate: Optional[str] = None
+    sscl_rate: Optional[str] = None
+    scl_rate: Optional[str] = None
+    
+    gen_duty_pct: float
+    vat_pct: float
+    pal_pct: float
+    cess_pct: float
+    sscl_pct: float
+    
+    per_unit_duty_lkr: float
+    total_duty_lkr: float
+    
+    base_price_lkr: float
+    per_unit_freight_lkr: float
+    total_freight_lkr: float
+    per_unit_port_lkr: float
+    total_port_lkr: float
+    
+    cnf_price_lkr: float
+    unit_cost_lkr: float
+    total_cost_lkr: float
+    
+    suggested_selling_price_lkr: float
+    total_sales_revenue_lkr: float
+    predicted_profit_lkr: float
+    profit_per_kg_lkr: float
+    
+    formatted_quotation_text: str
 
 

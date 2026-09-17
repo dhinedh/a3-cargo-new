@@ -427,6 +427,16 @@ export const apiClient = {
     await axios.delete(`${API_BASE}/shipments/${shipmentId}/requirements/${reqId}`);
   },
 
+  bulkDeleteRequirements: async (shipmentId: number, reqIds: number[]): Promise<void> => {
+    await axios.post(`${API_BASE}/shipments/${shipmentId}/requirements/bulk-delete`, {
+      requirement_ids: reqIds,
+    });
+  },
+
+  clearAllRequirements: async (shipmentId: number): Promise<void> => {
+    await axios.delete(`${API_BASE}/shipments/${shipmentId}/requirements/clear-all`);
+  },
+
   uploadExcelRequirements: async (shipmentId: number, file: File): Promise<ShipmentCustomerRequirement[]> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -548,6 +558,11 @@ export const apiClient = {
 
   convertToShipmentProducts: async (shipmentId: number): Promise<Shipment> => {
     const res = await axios.post(`${API_BASE}/shipments/${shipmentId}/convert-to-products`);
+    return res.data;
+  },
+
+  simulateQuotation: async (payload: any) => {
+    const res = await axios.post(`${API_BASE}/shipments/simulate-quotation`, payload);
     return res.data;
   },
 };

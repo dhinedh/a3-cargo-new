@@ -127,30 +127,30 @@ class ShipmentSequence(Base):
 class Shipment(Base):
     __tablename__ = "shipments"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_no = Column(String, unique=True, index=True, nullable=False)  # e.g. AEC/10/2026-27
-    sequence_number = Column(Integer, nullable=False)
-    financial_year = Column(String, nullable=False)  # 2026-27
-    shipment_date = Column(String, nullable=True)
-    status = Column(String, default="DRAFT")  # DRAFT, CONFIGURED, SHIPPED, COMPLETED, CANCELLED
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_no: Any = Column(String, unique=True, index=True, nullable=False)  # e.g. AEC/10/2026-27
+    sequence_number: Any = Column(Integer, nullable=False)
+    financial_year: Any = Column(String, nullable=False)  # 2026-27
+    shipment_date: Any = Column(String, nullable=True)
+    status: Any = Column(String, default="DRAFT")  # DRAFT, CONFIGURED, SHIPPED, COMPLETED, CANCELLED
 
     # Destination, Currency & Lifecycle Stage Tracker
-    destination = Column(String, default="Colombo Port, Sri Lanka")
-    currency = Column(String, default="INR")
-    current_stage = Column(String, default="1_SHIPMENT_CREATION")
+    destination: Any = Column(String, default="Colombo Port, Sri Lanka")
+    currency: Any = Column(String, default="INR")
+    current_stage: Any = Column(String, default="1_SHIPMENT_CREATION")
 
     # Configurations
-    usd_rate = Column(Numeric(precision=18, scale=4), default=1.0)
-    lkr_inr_rate = Column(Numeric(precision=18, scale=4), default=1.0)
-    profit_margin_pct = Column(Numeric(precision=18, scale=4), default=15.0)
-    indian_invoice_margin_pct = Column(Numeric(precision=18, scale=4), default=15.0)
-    colombo_invoice_margin_pct = Column(Numeric(precision=18, scale=4), default=15.0)
-    margin_mode = Column(String, default="MARGIN_ON_REVENUE")  # "MARGIN_ON_REVENUE" or "MARKUP_ON_COST"
-    common_expenses_inr = Column(Numeric(precision=18, scale=4), default=0.0)
-    common_expenses_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    port_expenses_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    freight_allocation_mode = Column(String, default="WEIGHT")  # "WEIGHT" or "QUANTITY"
-    notes = Column(Text, nullable=True)
+    usd_rate: Any = Column(Numeric(precision=18, scale=4), default=1.0)
+    lkr_inr_rate: Any = Column(Numeric(precision=18, scale=4), default=1.0)
+    profit_margin_pct: Any = Column(Numeric(precision=18, scale=4), default=15.0)
+    indian_invoice_margin_pct: Any = Column(Numeric(precision=18, scale=4), default=15.0)
+    colombo_invoice_margin_pct: Any = Column(Numeric(precision=18, scale=4), default=15.0)
+    margin_mode: Any = Column(String, default="MARGIN_ON_REVENUE")  # "MARGIN_ON_REVENUE" or "MARKUP_ON_COST"
+    common_expenses_inr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    common_expenses_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    port_expenses_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    freight_allocation_mode: Any = Column(String, default="WEIGHT")  # "WEIGHT" or "QUANTITY"
+    notes: Any = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -184,55 +184,55 @@ class ShipmentCustomer(Base):
 class ShipmentProduct(Base):
     __tablename__ = "shipment_products"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    customer_id: Any = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
 
-    product_name = Column(String, nullable=False)
-    product_category = Column(String, nullable=True)
-    hsn_code = Column(String, nullable=True, index=True)
-    item_classification = Column(String, default="NORMAL")  # "NORMAL", "LICENSED", "SCL"
-    is_active = Column(Boolean, default=True, index=True)
-    stage_status = Column(String, default="REQUESTED")  # STATUS TIMELINE
-    quantity = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
-    weight_val = Column(Numeric(precision=18, scale=4), default=0.0)
-    weight_unit = Column(String, default="KG")  # Grams, KG, Pcs
-    unit = Column(String, default="PCS")
-    purchase_price = Column(Numeric(precision=18, scale=4), nullable=False, default=0.0)
-    currency = Column(String, default="INR")  # INR, USD, LKR
+    product_name: Any = Column(String, nullable=False)
+    product_category: Any = Column(String, nullable=True)
+    hsn_code: Any = Column(String, nullable=True, index=True)
+    item_classification: Any = Column(String, default="NORMAL")  # "NORMAL", "LICENSED", "SCL"
+    is_active: Any = Column(Boolean, default=True, index=True)
+    stage_status: Any = Column(String, default="REQUESTED")  # STATUS TIMELINE
+    quantity: Any = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
+    weight_val: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    weight_unit: Any = Column(String, default="KG")  # Grams, KG, Pcs
+    unit: Any = Column(String, default="PCS")
+    purchase_price: Any = Column(Numeric(precision=18, scale=4), nullable=False, default=0.0)
+    currency: Any = Column(String, default="INR")  # INR, USD, LKR
 
     # Detailed Packaging & Weight Fields (matching ProductList / InvoiceGen)
-    pkt_size_g = Column(Numeric(precision=18, scale=4), default=0.0)
-    no_bags_qty = Column(Numeric(precision=18, scale=4), default=0.0)
-    net_weight_kg = Column(Numeric(precision=18, scale=4), default=0.0)
-    gross_weight_kg = Column(Numeric(precision=18, scale=4), default=0.0)
+    pkt_size_g: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    no_bags_qty: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    net_weight_kg: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    gross_weight_kg: Any = Column(Numeric(precision=18, scale=4), default=0.0)
 
     # Customer Quotation & Discount Fields (matching P_1 / P_2)
-    discount_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    set_price_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    short_qty = Column(Numeric(precision=18, scale=4), default=0.0)
-    short_amt_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    net_settlement_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
+    discount_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    set_price_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    short_qty: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    short_amt_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    net_settlement_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
 
     # Formula Output & Allocation Fields
-    freight_allocation_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    port_charges_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    base_price_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    cnf_price = Column(Numeric(precision=18, scale=4), default=0.0)
-    general_duty_rate = Column(String, nullable=True)
-    vat_rate = Column(String, nullable=True)
-    pal_rate = Column(String, nullable=True)
-    cess_rate = Column(String, nullable=True)
-    sscl_rate = Column(String, nullable=True)
+    freight_allocation_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    port_charges_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    base_price_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    cnf_price: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    general_duty_rate: Any = Column(String, nullable=True)
+    vat_rate: Any = Column(String, nullable=True)
+    pal_rate: Any = Column(String, nullable=True)
+    cess_rate: Any = Column(String, nullable=True)
+    sscl_rate: Any = Column(String, nullable=True)
 
-    calculated_duty_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    total_cost_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    indian_price = Column(Numeric(precision=18, scale=4), default=0.0)
-    srilankan_price = Column(Numeric(precision=18, scale=4), default=0.0)
+    calculated_duty_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    total_cost_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    indian_price: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    srilankan_price: Any = Column(Numeric(precision=18, scale=4), default=0.0)
 
-    suggested_price = Column(Numeric(precision=18, scale=4), default=0.0)
-    final_quotation_price = Column(Numeric(precision=18, scale=4), default=0.0)  # Manually adjustable
-    predicted_profit = Column(Numeric(precision=18, scale=4), default=0.0)
+    suggested_price: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    final_quotation_price: Any = Column(Numeric(precision=18, scale=4), default=0.0)  # Manually adjustable
+    predicted_profit: Any = Column(Numeric(precision=18, scale=4), default=0.0)
 
     shipment = relationship("Shipment", back_populates="products")
     customer = relationship("Customer")
@@ -303,15 +303,15 @@ class VendorProductMapping(Base):
 class ShipmentCustomerRequirement(Base):
     __tablename__ = "shipment_customer_requirements"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    customer_id: Any = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
 
-    product_name = Column(String, nullable=False)
-    hsn_code = Column(String, nullable=True)
-    required_quantity = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
-    unit = Column(String, default="PCS", nullable=False)  # Carton, Pack, Piece, KG, Box
-    notes = Column(Text, nullable=True)
+    product_name: Any = Column(String, nullable=False)
+    hsn_code: Any = Column(String, nullable=True)
+    required_quantity: Any = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
+    unit: Any = Column(String, default="PCS", nullable=False)  # Carton, Pack, Piece, KG, Box
+    notes: Any = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -344,15 +344,15 @@ class CustomerRequirementHistory(Base):
 class ShipmentVendorAllocation(Base):
     __tablename__ = "shipment_vendor_allocations"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    requirement_id = Column(Integer, ForeignKey("shipment_customer_requirements.id"), nullable=False, index=True)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    requirement_id: Any = Column(Integer, ForeignKey("shipment_customer_requirements.id"), nullable=False, index=True)
+    vendor_id: Any = Column(Integer, ForeignKey("vendors.id"), nullable=False, index=True)
 
-    allocated_quantity = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
-    allocated_unit = Column(String, default="PCS", nullable=False)
-    status = Column(String, default="PENDING_PI")  # PENDING_PI, PI_RECEIVED, CONFIRMED
-    notes = Column(Text, nullable=True)
+    allocated_quantity: Any = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
+    allocated_unit: Any = Column(String, default="PCS", nullable=False)
+    status: Any = Column(String, default="PENDING_PI")  # PENDING_PI, PI_RECEIVED, CONFIRMED
+    notes: Any = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -366,28 +366,28 @@ class ShipmentVendorAllocation(Base):
 class ShipmentVendorProformaItem(Base):
     __tablename__ = "shipment_vendor_proforma_items"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    allocation_id = Column(Integer, ForeignKey("shipment_vendor_allocations.id"), nullable=True, index=True)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    allocation_id: Any = Column(Integer, ForeignKey("shipment_vendor_allocations.id"), nullable=True, index=True)
+    vendor_id: Any = Column(Integer, ForeignKey("vendors.id"), nullable=False, index=True)
 
-    product_name = Column(String, nullable=False)
-    sku = Column(String, nullable=True)
-    hsn_code = Column(String, nullable=True)
-    proforma_qty = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
-    cartons_count = Column(Numeric(precision=18, scale=4), default=0.0)
-    units_per_carton = Column(Numeric(precision=18, scale=4), default=0.0)
-    unit_weight_val = Column(Numeric(precision=18, scale=4), default=0.0)
-    unit_weight_unit = Column(String, default="KG")  # KG, G
-    net_weight_kg = Column(Numeric(precision=18, scale=4), default=0.0)
-    gross_weight_kg = Column(Numeric(precision=18, scale=4), default=0.0)
-    proforma_price = Column(Numeric(precision=18, scale=4), default=0.0)
-    mrp = Column(Numeric(precision=18, scale=4), default=0.0)
-    discount_pct = Column(Numeric(precision=18, scale=4), default=0.0)
-    gst_pct = Column(Numeric(precision=18, scale=4), default=0.0)
-    total_payable = Column(Numeric(precision=18, scale=4), default=0.0)
-    currency = Column(String, default="INR")
-    notes = Column(Text, nullable=True)
+    product_name: Any = Column(String, nullable=False)
+    sku: Any = Column(String, nullable=True)
+    hsn_code: Any = Column(String, nullable=True)
+    proforma_qty: Any = Column(Numeric(precision=18, scale=4), nullable=False, default=1.0)
+    cartons_count: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    units_per_carton: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    unit_weight_val: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    unit_weight_unit: Any = Column(String, default="KG")  # KG, G
+    net_weight_kg: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    gross_weight_kg: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    proforma_price: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    mrp: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    discount_pct: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    gst_pct: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    total_payable: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    currency: Any = Column(String, default="INR")
+    notes: Any = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -399,21 +399,21 @@ class ShipmentVendorProformaItem(Base):
 class CustomerQuotationItem(Base):
     __tablename__ = "customer_quotation_items"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    requirement_id = Column(Integer, ForeignKey("shipment_customer_requirements.id"), nullable=True, index=True)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=True, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    requirement_id: Any = Column(Integer, ForeignKey("shipment_customer_requirements.id"), nullable=True, index=True)
+    vendor_id: Any = Column(Integer, ForeignKey("vendors.id"), nullable=True, index=True)
 
-    product_name = Column(String, nullable=False)
-    hsn_code = Column(String, nullable=True)
-    quantity = Column(Numeric(precision=18, scale=4), default=1.0)
-    unit = Column(String, default="PCS")
-    unit_price_inr = Column(Numeric(precision=18, scale=4), default=0.0)
-    unit_cost_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    estimated_selling_price_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    customer_target_price = Column(Numeric(precision=18, scale=4), nullable=True)
-    approval_status = Column(String, default="PENDING")  # PENDING, APPROVED, REJECTED, NEGOTIATED
-    notes = Column(Text, nullable=True)
+    product_name: Any = Column(String, nullable=False)
+    hsn_code: Any = Column(String, nullable=True)
+    quantity: Any = Column(Numeric(precision=18, scale=4), default=1.0)
+    unit: Any = Column(String, default="PCS")
+    unit_price_inr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    unit_cost_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    estimated_selling_price_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    customer_target_price: Any = Column(Numeric(precision=18, scale=4), nullable=True)
+    approval_status: Any = Column(String, default="PENDING")  # PENDING, APPROVED, REJECTED, NEGOTIATED
+    notes: Any = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

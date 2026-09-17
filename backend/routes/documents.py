@@ -1172,61 +1172,77 @@ def generate_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depe
 
     # Items table
     table_data = [
-        ["#", "Product Name", "HSN", "Qty", "Units/Ctn", "Target Price", "MRP", "Disc %", "GST %", "Total Payable"]
+        ["#", "Product Name", "HSN", "Qty", "Cartons", "Unit Wt", "Net Wt", "Unit Price", "Net Price/KG", "Total Payable"]
     ]
 
     items_count = 0
     if pis:
         for idx, p in enumerate(pis, 1):
             items_count += 1
+            qty_val = abs(float(p.proforma_qty or 1.0))
+            unit_w = abs(float(p.unit_weight_val or 0.0))
+            net_w = abs(float(p.net_weight_kg or (unit_w * qty_val)))
+            u_price = abs(float(p.proforma_price or 0.0))
+            tot_pay = abs(float(p.total_payable if p.total_payable else (qty_val * u_price)))
+            price_per_kg = tot_pay / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
+
             table_data.append([
                 str(idx),
                 p.product_name,
                 p.hsn_code or "-",
-                f"{p.proforma_qty:g}",
-                str(p.units_per_carton or 12),
-                f"Rs.{p.proforma_price:.2f}",
-                f"Rs.{p.mrp:.2f}" if p.mrp else "-",
-                f"{p.discount_pct}%" if p.discount_pct else "0%",
-                f"{p.gst_pct}%" if p.gst_pct else "18%",
-                f"Rs.{p.total_payable:.2f}" if p.total_payable else f"Rs.{(p.proforma_qty * p.proforma_price):.2f}"
+                f"{qty_val:,.0f}",
+                str(abs(int(p.cartons_count or 0))),
+                f"{unit_w:.2f}kg",
+                f"{net_w:,.2f}kg",
+                f"Rs.{u_price:.2f}",
+                f"Rs.{price_per_kg:.2f}",
+                f"Rs.{tot_pay:.2f}"
             ])
     elif reqs:
         for idx, r in enumerate(reqs, 1):
             items_count += 1
+            qty_val = abs(float(r.required_quantity or 1.0))
+            u_price = abs(float(r.target_price or 45.0))
+            tot_pay = qty_val * u_price
             table_data.append([
                 str(idx),
                 r.product_name,
                 r.hsn_code or "-",
-                f"{r.required_quantity:g}",
-                "12",
-                f"Rs.{r.target_price:.2f}" if r.target_price else "Rs.45.00",
-                "Rs.60.00",
-                "5%",
-                "18%",
-                f"Rs.{(r.required_quantity * (r.target_price or 45.0)):.2f}"
+                f"{qty_val:,.0f}",
+                "1",
+                "0.50kg",
+                f"{(qty_val * 0.5):,.2f}kg",
+                f"Rs.{u_price:.2f}",
+                f"Rs.{(u_price / 0.5):.2f}",
+                f"Rs.{tot_pay:.2f}"
             ])
     else:
         ship_prods = s.products
         for idx, sp in enumerate(ship_prods, 1):
             items_count += 1
+            qty_val = abs(float(sp.quantity or 1.0))
+            u_price = abs(float(sp.purchase_price or 45.0))
+            unit_w = abs(float(sp.weight_val or 0.5))
+            net_w = abs(float(sp.net_weight_kg or (qty_val * unit_w)))
+            tot_pay = qty_val * u_price
+            price_per_kg = tot_pay / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
             table_data.append([
                 str(idx),
                 sp.product_name,
                 sp.hsn_code or "-",
-                f"{sp.quantity:g}",
-                "12",
-                f"Rs.{sp.purchase_price:.2f}" if sp.purchase_price else "Rs.45.00",
-                "-",
-                "0%",
-                "18%",
-                f"Rs.{(sp.quantity * (sp.purchase_price or 45.0)):.2f}"
+                f"{qty_val:,.0f}",
+                str(abs(int(sp.no_bags_qty or 1))),
+                f"{unit_w:.2f}kg",
+                f"{net_w:,.2f}kg",
+                f"Rs.{u_price:.2f}",
+                f"Rs.{price_per_kg:.2f}",
+                f"Rs.{tot_pay:.2f}"
             ])
 
     if items_count == 0:
-        table_data.append(["1", "Ragi (Finger Millet)", "1008.2910", "12", "12", "Rs.45.00", "Rs.60.00", "5%", "18%", "Rs.540.00"])
+        table_data.append(["1", "Ragi (Finger Millet)", "1008.2910", "12", "1", "0.50kg", "6.00kg", "Rs.45.00", "Rs.90.00", "Rs.540.00"])
 
-    t_prod = Table(table_data, colWidths=[25, 140, 55, 35, 45, 55, 45, 35, 35, 50])
+    t_prod = Table(table_data, colWidths=[20, 115, 50, 30, 40, 45, 45, 55, 55, 65])
     t_prod.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0F172A')),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
@@ -1297,7 +1313,7 @@ def generate_vendor_rfq_excel(shipment_id: int, vendor_id: int, db: Session = De
 
     headers = [
         "S.No", "Product Name", "HSN Code", "Required Quantity", "Unit",
-        "Units Per Carton", "Unit Price (INR)", "MRP (INR)", "Discount %", "GST %", "Total Payable (INR)", "Notes / Remarks"
+        "Cartons Count", "Units Per Carton", "Unit Weight (KG)", "Net Weight (KG)", "Unit Price (INR)", "Net Price / KG (INR)", "Total Payable (INR)", "Notes / Remarks"
     ]
     ws.append(headers)
 
@@ -1309,22 +1325,38 @@ def generate_vendor_rfq_excel(shipment_id: int, vendor_id: int, db: Session = De
 
     if pis:
         for idx, p in enumerate(pis, 1):
+            qty_val = abs(float(p.proforma_qty or 1.0))
+            unit_w = abs(float(p.unit_weight_val or 0.0))
+            net_w = abs(float(p.net_weight_kg or (unit_w * qty_val)))
+            u_price = abs(float(p.proforma_price or 0.0))
+            tot_pay = abs(float(p.total_payable if p.total_payable else (qty_val * u_price)))
+            price_per_kg = tot_pay / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
+
             ws.append([
-                idx, p.product_name, p.hsn_code or "", float(p.proforma_qty), "PCS",
-                p.units_per_carton or 12, float(p.proforma_price or 0.0), float(p.mrp or 0.0), float(p.discount_pct or 0.0), float(p.gst_pct or 18.0), float(p.total_payable or 0.0), p.notes or ""
+                idx, p.product_name, p.hsn_code or "", qty_val, "PCS",
+                abs(float(p.cartons_count or 0)), abs(float(p.units_per_carton or 12)), unit_w, net_w, u_price, round(price_per_kg, 2), round(tot_pay, 2), p.notes or ""
             ])
     elif reqs:
         for idx, r in enumerate(reqs, 1):
+            qty_val = abs(float(r.required_quantity or 1.0))
+            u_price = abs(float(r.target_price or 45.0))
+            tot_pay = qty_val * u_price
             ws.append([
-                idx, r.product_name, r.hsn_code or "", float(r.required_quantity), r.unit or "PCS",
-                12, float(r.target_price or 45.0), 60.0, 5.0, 18.0, float((r.required_quantity * (r.target_price or 45.0))), r.notes or ""
+                idx, r.product_name, r.hsn_code or "", qty_val, r.unit or "PCS",
+                1, 12, 0.5, round(qty_val * 0.5, 2), u_price, round(u_price / 0.5, 2), round(tot_pay, 2), r.notes or ""
             ])
     else:
         ship_prods = s.products
         for idx, sp in enumerate(ship_prods, 1):
+            qty_val = abs(float(sp.quantity or 1.0))
+            u_price = abs(float(sp.purchase_price or 45.0))
+            unit_w = abs(float(sp.weight_val or 0.5))
+            net_w = abs(float(sp.net_weight_kg or (qty_val * unit_w)))
+            tot_pay = qty_val * u_price
+            price_per_kg = tot_pay / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
             ws.append([
-                idx, sp.product_name, sp.hsn_code or "", float(sp.quantity), sp.unit or "PCS",
-                12, float(sp.purchase_price or 45.0), 0.0, 0.0, 18.0, float((sp.quantity * (sp.purchase_price or 45.0))), ""
+                idx, sp.product_name, sp.hsn_code or "", qty_val, sp.unit or "PCS",
+                abs(float(sp.no_bags_qty or 1)), abs(float(sp.pkt_size_g or 12)), unit_w, net_w, u_price, round(price_per_kg, 2), round(tot_pay, 2), ""
             ])
 
     buffer = io.BytesIO()
