@@ -450,6 +450,12 @@ export const apiClient = {
     return `${API_BASE}/shipments/${shipmentId}/requirements/export/excel`;
   },
 
+  getRequirementsTemplateExcelUrl: (shipmentId?: number) => {
+    return shipmentId
+      ? `${API_BASE}/shipments/${shipmentId}/requirements/excel-template`
+      : `${API_BASE}/shipments/requirements/excel-template`;
+  },
+
   getRequirementsExportPdfUrl: (shipmentId: number) => {
     return `${API_BASE}/shipments/${shipmentId}/requirements/export/pdf`;
   },

@@ -501,3 +501,50 @@ def get_customer_requirement_history(shipment_id: int, db: Session = Depends(get
     return db.query(models.CustomerRequirementHistory).filter(
         models.CustomerRequirementHistory.shipment_id == shipment_id
     ).order_by(models.CustomerRequirementHistory.modified_at.desc()).all()
+
+
+@router.get("/requirements/excel-template")
+@router.get("/{shipment_id}/requirements/excel-template")
+def download_customer_requirements_template(shipment_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """
+    Returns a sample Excel (.xlsx) template for uploading customer requirements in Stage 1.
+    """
+    sample_data = [
+        {
+            "Customer": "Lanka Traders Ltd",
+            "Product Name": "Urad Dal",
+            "Required Quantity": 26000,
+            "Unit": "KG",
+            "HSN Code": "0713.31.00",
+            "Notes": "1 Container Export Quality 1st Grade"
+        },
+        {
+            "Customer": "Colombo Importers",
+            "Product Name": "White Sugar",
+            "Required Quantity": 1000,
+            "Unit": "Bags",
+            "HSN Code": "1701.99.90",
+            "Notes": "50kg Bags Packing"
+        },
+        {
+            "Customer": "Lanka Traders Ltd",
+            "Product Name": "Ragi Grain",
+            "Required Quantity": 1200,
+            "Unit": "Carton",
+            "HSN Code": "1008.29.00",
+            "Notes": "12 units per carton"
+        }
+    ]
+
+    df = pd.DataFrame(sample_data)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Requirement Upload Template')
+
+    output.seek(0)
+    filename = "Stage1_Customer_Requirements_Upload_Template.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

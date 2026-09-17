@@ -395,6 +395,17 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
           </button>
 
           <a
+            href={apiClient.getRequirementsTemplateExcelUrl(shipmentId)}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Download Excel Template for Customer Requirements Upload"
+          >
+            <Download className="w-4 h-4 text-blue-600" />
+            <span>Download Template</span>
+          </a>
+
+          <a
             href={apiClient.getRequirementsExportExcelUrl(shipmentId)}
             target="_blank"
             rel="noreferrer"
@@ -490,13 +501,25 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
               Add customer demand requirements manually or upload an Excel / CSV sheet to get started.
             </p>
-            <button
-              onClick={handleOpenAddModal}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Customer Requirement
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <a
+                href={apiClient.getRequirementsTemplateExcelUrl(shipmentId)}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                title="Download Excel Template for Uploading Requirements"
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                <span>Download Excel Template</span>
+              </a>
+              <button
+                onClick={handleOpenAddModal}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Customer Requirement
+              </button>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
