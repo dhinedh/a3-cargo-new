@@ -6,6 +6,8 @@ from typing import List, Optional
 from decimal import Decimal
 from pydantic import BaseModel
 import io
+import re
+import difflib
 import pandas as pd
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
@@ -42,6 +44,94 @@ TRADE_NAME_HSN_MAP = {
     "oil": "1512.19.10",
     "jaggery": "1702.90.90"
 }
+
+CANONICAL_PRODUCT_MAP = {
+    "uraddal": "Urad Dal",
+    "uradal": "Urad Dal",
+    "urad": "Urad Dal",
+    "whitsugar": "White Sugar",
+    "witesugar": "White Sugar",
+    "whtsugar": "White Sugar",
+    "whitsugr": "White Sugar",
+    "sugar": "White Sugar",
+    "ragigrain": "Ragi Grain",
+    "ragi": "Ragi Grain",
+    "gramflour": "Gram Flour",
+    "gram": "Gram Flour",
+    "besan": "Gram Flour",
+    "turmeric": "Turmeric Powder",
+    "tumeric": "Turmeric Powder",
+    "chilli": "Chilli Powder",
+    "chilly": "Chilli Powder",
+    "chili": "Chilli Powder",
+    "coriander": "Coriander Seeds",
+    "dhaniya": "Coriander Seeds",
+    "cumin": "Cumin Seeds",
+    "mustard": "Mustard Seeds",
+    "pepper": "Pepper Whole",
+    "cardamom": "Cardamom Green",
+    "cinnamon": "Cinnamon Sticks",
+    "clove": "Cloves",
+    "rice": "Basmati Rice",
+    "basmati": "Basmati Rice",
+    "atta": "Wheat Atta",
+    "maida": "Maida Flour",
+    "suji": "Suji Rava",
+    "rava": "Suji Rava",
+    "ghee": "Pure Ghee",
+    "honey": "Raw Honey"
+}
+
+def auto_correct_product_name(raw_name: str, db: Session) -> tuple[str, bool]:
+    if not raw_name or not raw_name.strip():
+        return raw_name, False
+
+    original = raw_name.strip()
+    clean = original.lower().replace("-", "").replace("_", "")
+    compact = clean.replace(" ", "")
+
+    if compact in CANONICAL_PRODUCT_MAP:
+        corrected = CANONICAL_PRODUCT_MAP[compact]
+        return corrected, (corrected.lower() != original.lower())
+
+    words = original.split()
+    corrected_words = []
+    changed = False
+    for w in words:
+        wl = w.lower()
+        if wl in ["whit", "wite", "whte"]:
+            corrected_words.append("White")
+            changed = True
+        elif wl in ["suagr", "sgur"]:
+            corrected_words.append("Sugar")
+            changed = True
+        elif wl in ["urad", "uraddal"]:
+            corrected_words.append("Urad")
+            changed = True
+        else:
+            corrected_words.append(w)
+
+    if changed:
+        res = " ".join(corrected_words)
+        if res.lower() == "urad":
+            res = "Urad Dal"
+        return res, True
+
+    split_camel = re.sub(r'([a-z])([A-Z])', r'\1 \2', original)
+    if split_camel != original:
+        return split_camel, True
+
+    try:
+        catalog_items = db.query(models.ItemEntry.item_name).all()
+        known_names = [i.item_name for i in catalog_items if i.item_name]
+        if known_names:
+            matches = difflib.get_close_matches(original, known_names, n=1, cutoff=0.7)
+            if matches and matches[0].lower() != original.lower():
+                return matches[0], True
+    except Exception:
+        pass
+
+    return original, False
 
 def auto_map_hsn_code(product_name: str, db: Session) -> Optional[str]:
     if not product_name:
@@ -350,12 +440,14 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
         return default
 
     for idx, row in df.iterrows():
-        p_name = find_val(row, PROD_COLS, "")
-        if not p_name:
+        raw_p_name = find_val(row, PROD_COLS, "")
+        if not raw_p_name:
             continue
 
-        if p_name.lower().startswith(("total", "subtotal", "grand total", "summary", "sl.no", "s.no", "s.no.")):
+        if raw_p_name.lower().startswith(("total", "subtotal", "grand total", "summary", "sl.no", "s.no", "s.no.")):
             continue
+
+        p_name, is_autocorrected = auto_correct_product_name(raw_p_name, db)
 
         c_name = find_val(row, CUST_COLS, "").lower()
         cust_id = customers_map.get(c_name, default_cust_id)
@@ -363,17 +455,34 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
         raw_hsn = find_val(row, HSN_COLS, "")
         hsn_code = assign_sequential_hsn(shipment_id, p_name, raw_hsn, db, cat_counts)
 
-        raw_qty = find_val(row, QTY_COLS, "1")
-        try:
-            qty = Decimal(str(raw_qty).replace(",", ""))
-            if qty <= 0: qty = Decimal("1.0")
-        except Exception:
-            qty = Decimal("1.0")
+        raw_qty = find_val(row, QTY_COLS, "")
+        qty_auto_healed = False
+        if not raw_qty or str(raw_qty).strip().lower() in ["nan", "none", "", "0"]:
+            qty = Decimal("1000.0") if any(k in p_name.lower() for k in ["sugar", "dal", "rice", "grain"]) else Decimal("100.0")
+            qty_auto_healed = True
+        else:
+            try:
+                qty = Decimal(str(raw_qty).replace(",", ""))
+                if qty <= 0:
+                    qty = Decimal("100.0")
+                    qty_auto_healed = True
+            except Exception:
+                qty = Decimal("100.0")
+                qty_auto_healed = True
 
         unit = find_val(row, UNIT_COLS, "PCS").upper()
         if unit == "NAN": unit = "PCS"
 
-        notes_val = find_val(row, NOTES_COLS, "Auto-mapped via Excel")
+        raw_notes = find_val(row, NOTES_COLS, "")
+        notes_parts = []
+        if is_autocorrected:
+            notes_parts.append(f"Auto-corrected product name from '{raw_p_name}' to '{p_name}'")
+        if qty_auto_healed:
+            notes_parts.append(f"Auto-set missing quantity to {qty:,.0f} {unit}")
+        if raw_notes:
+            notes_parts.append(raw_notes)
+
+        notes_val = " | ".join(notes_parts) if notes_parts else "Auto-mapped via Excel"
 
         req = models.ShipmentCustomerRequirement(
             shipment_id=shipment_id,

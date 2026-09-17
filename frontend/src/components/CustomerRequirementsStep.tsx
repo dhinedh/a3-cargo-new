@@ -577,7 +577,17 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
                       <span className="font-semibold text-slate-800">{cust?.name || `Customer #${req.customer_id}`}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="font-bold text-blue-700">{req.product_name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-blue-700">{req.product_name}</span>
+                        {req.notes?.includes('Auto-corrected') && (
+                          <span
+                            className="px-1.5 py-0.5 bg-amber-50 text-amber-800 rounded text-[10px] font-extrabold border border-amber-300"
+                            title={req.notes}
+                          >
+                            ⚡ Auto-Corrected
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
@@ -592,8 +602,12 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
                         {req.unit}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-500 max-w-xs truncate">
-                      {req.notes || '-'}
+                    <td className="py-3 px-4 text-slate-500 max-w-xs truncate" title={req.notes || ''}>
+                      {req.notes?.includes('Auto-corrected') ? (
+                        <span className="text-amber-700 font-semibold">{req.notes}</span>
+                      ) : (
+                        req.notes || '-'
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">

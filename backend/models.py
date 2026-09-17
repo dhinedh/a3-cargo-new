@@ -84,7 +84,7 @@ class ItemEntry(Base):
     # Weight and favorite metadata
     weight_val = Column(Numeric(precision=18, scale=4), default=0.0)
     weight_unit = Column(String, default="KG")
-    is_favorite = Column(Boolean, default=True, index=True)
+    is_favorite: Any = Column(Boolean, default=True, index=True)
 
     # Pricing fields
     purchase_price = Column(Numeric(precision=18, scale=4), nullable=True)
