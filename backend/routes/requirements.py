@@ -338,7 +338,7 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
     QTY_COLS = ["quantity", "required_quantity", "qty", "req_qty", "count", "cartons", "no_of_cartons", "pcs", "nos", "amount", "total_qty"]
     HSN_COLS = ["hsn_code", "hsn", "hs_code", "hsn_sac", "tariff", "hs_number", "tariff_code"]
     CUST_COLS = ["customer", "customer_name", "consignee", "buyer", "client", "party", "party_name"]
-    UNIT_COLS = ["unit", "uom", "type", "packing_unit", "pkg"]
+    UNIT_COLS = ["unit", "unit_type", "uom", "type", "packing_unit", "pkg"]
     NOTES_COLS = ["notes", "remarks", "comments", "specification", "specifications"]
 
     def find_val(row, cols, default=""):
@@ -373,7 +373,7 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
         unit = find_val(row, UNIT_COLS, "PCS").upper()
         if unit == "NAN": unit = "PCS"
 
-        notes_val = find_val(row, NOTES_COLS, "Uploaded via Excel")
+        notes_val = find_val(row, NOTES_COLS, "Auto-mapped via Excel")
 
         req = models.ShipmentCustomerRequirement(
             shipment_id=shipment_id,
@@ -507,32 +507,27 @@ def get_customer_requirement_history(shipment_id: int, db: Session = Depends(get
 @router.get("/{shipment_id}/requirements/excel-template")
 def download_customer_requirements_template(shipment_id: Optional[int] = None, db: Session = Depends(get_db)):
     """
-    Returns a sample Excel (.xlsx) template for uploading customer requirements in Stage 1.
+    Returns a simplified 3-column sample Excel (.xlsx) template for uploading customer requirements in Stage 1:
+    - Product Name
+    - Quantity
+    - Unit Type
+    (Customer, HSN Code, and Notes are automatically auto-mapped upon upload).
     """
     sample_data = [
         {
-            "Customer": "Lanka Traders Ltd",
             "Product Name": "Urad Dal",
-            "Required Quantity": 26000,
-            "Unit": "KG",
-            "HSN Code": "0713.31.00",
-            "Notes": "1 Container Export Quality 1st Grade"
+            "Quantity": 26000,
+            "Unit Type": "KG"
         },
         {
-            "Customer": "Colombo Importers",
             "Product Name": "White Sugar",
-            "Required Quantity": 1000,
-            "Unit": "Bags",
-            "HSN Code": "1701.99.90",
-            "Notes": "50kg Bags Packing"
+            "Quantity": 1000,
+            "Unit Type": "Bags"
         },
         {
-            "Customer": "Lanka Traders Ltd",
             "Product Name": "Ragi Grain",
-            "Required Quantity": 1200,
-            "Unit": "Carton",
-            "HSN Code": "1008.29.00",
-            "Notes": "12 units per carton"
+            "Quantity": 1200,
+            "Unit Type": "Carton"
         }
     ]
 
