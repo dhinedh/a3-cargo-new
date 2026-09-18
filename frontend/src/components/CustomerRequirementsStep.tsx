@@ -204,30 +204,33 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
   const autoDetectHsn = async (rowId: string, prodName: string) => {
     if (!prodName || !prodName.trim() || prodName.trim().length < 2) return;
     const clean = prodName.trim().toLowerCase().split('(')[0].trim();
+    const compact = clean.replace(/[\s\-_]/g, '');
 
     let baseHsn = '';
-    // 1. Primary: Search Database / Excel Seeded Catalog
-    try {
-      const items = await apiClient.searchAllProducts(prodName.trim(), 5);
-      const withHsn = items.find(i => i.hs_code);
-      if (withHsn && withHsn.hs_code) {
-        baseHsn = withHsn.hs_code;
+
+    // 1. Instant check: Trade Name Commodity Dictionary
+    for (const [k, hsn] of Object.entries(TRADE_NAME_HSN_MAP)) {
+      const kCompact = k.replace(/[\s\-_]/g, '');
+      if (clean === k || compact === kCompact || clean.includes(k) || (clean.length >= 3 && k.includes(clean))) {
+        baseHsn = hsn;
+        break;
       }
-    } catch (err) {
-      console.error('Failed to auto-detect HSN from catalog:', err);
     }
 
-    // 2. Secondary: Fallback to Trade Name Commodity Dictionary
+    // 2. Search Database / Excel Seeded Catalog
     if (!baseHsn) {
-      for (const [k, hsn] of Object.entries(TRADE_NAME_HSN_MAP)) {
-        if (clean.includes(k) || (clean.length >= 3 && k.includes(clean))) {
-          baseHsn = hsn;
-          break;
+      try {
+        const items = await apiClient.searchAllProducts(prodName.trim(), 5);
+        const withHsn = items.find(i => i.hs_code);
+        if (withHsn && withHsn.hs_code) {
+          baseHsn = withHsn.hs_code;
         }
+      } catch (err) {
+        console.error('Failed to auto-detect HSN from catalog:', err);
       }
     }
 
-    // 3. Tertiary: Fallback to Customs Tariff Lines
+    // 3. Fallback: Customs Tariff Lines
     if (!baseHsn) {
       try {
         const tariffLines = await apiClient.searchTariffByName(prodName.trim(), 5);
@@ -240,9 +243,19 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
     }
 
     if (baseHsn) {
-      handleRowChange(rowId, 'hsn_code', baseHsn);
+      setProductRows(prev => prev.map(r => r.id === rowId ? { ...r, hsn_code: baseHsn } : r));
     }
   };
+
+  // Auto-trigger HSN detection when product name exists but HSN is empty
+  useEffect(() => {
+    productRows.forEach(row => {
+      if (row.product_name && row.product_name.trim().length >= 2 && !row.hsn_code) {
+        autoDetectHsn(row.id, row.product_name);
+      }
+    });
+  }, [productRows]);
+
 
   const resetForm = () => {
     setProductRows([createEmptyRow()]);
@@ -731,11 +744,16 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
                       <ProductSearchSelect
                         label="Product / SKU Name"
                         value={row.product_name}
-                        onChange={(val) => handleRowChange(row.id, 'product_name', val)}
+                        onChange={(val) => {
+                          handleRowChange(row.id, 'product_name', val);
+                          autoDetectHsn(row.id, val);
+                        }}
                         onSelectProduct={(opt: ProductOption) => {
                           handleRowChange(row.id, 'product_name', opt.item_name);
                           if (opt.hs_code) {
                             handleRowChange(row.id, 'hsn_code', opt.hs_code);
+                          } else {
+                            autoDetectHsn(row.id, opt.item_name);
                           }
                           if (opt.unit) {
                             handleRowChange(row.id, 'unit', opt.unit);
