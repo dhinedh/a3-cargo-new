@@ -186,12 +186,12 @@ export const RightCalculationReportSidebar: React.FC<RightCalculationReportSideb
     return (
       <button
         onClick={() => onToggle(true)}
-        className="fixed top-28 right-0 z-40 bg-slate-900 text-white shadow-xl rounded-l-xl px-2.5 py-3 flex flex-col items-center gap-2 hover:bg-slate-800 transition-all border-l border-y border-indigo-500/40 group cursor-pointer"
+        className="fixed top-28 right-0 z-50 bg-slate-900 text-white shadow-2xl rounded-l-xl px-3 py-3.5 flex flex-col items-center gap-2 hover:bg-slate-800 transition-all border-l border-y border-indigo-500/50 group cursor-pointer"
         title="Open Live Duty & Calculation Report Panel"
       >
         <div className="relative">
           <Calculator className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping" />
         </div>
         <PanelRightOpen className="w-4 h-4 text-slate-400 group-hover:text-white" />
       </button>
@@ -199,7 +199,7 @@ export const RightCalculationReportSidebar: React.FC<RightCalculationReportSideb
   }
 
   return (
-    <aside className="w-96 shrink-0 sticky top-14 h-[calc(100vh-56px)] bg-slate-900 border-l border-slate-800 text-slate-100 flex flex-col shadow-2xl z-30 transition-all duration-300 select-none overflow-hidden">
+    <aside className="fixed top-14 right-0 bottom-0 z-50 w-[420px] max-w-[90vw] bg-slate-900 border-l border-slate-800 text-slate-100 flex flex-col shadow-2xl transition-all duration-300 select-none overflow-hidden animate-in slide-in-from-right">
       
       {/* Header Bar */}
       <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
