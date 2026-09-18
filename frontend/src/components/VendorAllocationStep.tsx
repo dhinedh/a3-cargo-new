@@ -2673,29 +2673,29 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                 </div>
 
                 {/* 4 Interactive Controls Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                   
                   {/* 1. Dropdown Button to Select Unit Basis */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      1. Select Pricing Unit *
+                  <div className="flex flex-col justify-between">
+                    <label className="block text-xs font-bold text-slate-700 mb-1 min-h-[32px] flex items-end leading-tight">
+                      <span>1. Select Pricing Unit *</span>
                     </label>
                     <select
                       value={piForm.price_basis}
                       onChange={e => updatePiFormField('price_basis', e.target.value as any)}
-                      className="w-full px-3 py-2 border-2 border-blue-400 focus:border-blue-600 rounded-lg text-xs font-bold text-blue-900 bg-blue-50/40 shadow-xs cursor-pointer"
+                      className="w-full px-2 py-2 border-2 border-blue-400 focus:border-blue-600 rounded-lg text-xs font-bold text-blue-900 bg-blue-50/50 shadow-xs cursor-pointer"
                     >
-                      <option value="PER_CARTON">🛍️ Per Carton / Outer Bag</option>
-                      <option value="PER_UNIT">📦 Per Unit / Piece (PCS)</option>
-                      <option value="PER_KG">⚖️ Per KG Net Weight</option>
-                      <option value="TOTAL_LOT">💰 Whole Lot / Total Amount</option>
+                      <option value="PER_CARTON">🛍️ Per Carton</option>
+                      <option value="PER_UNIT">📦 Per Unit (PCS)</option>
+                      <option value="PER_KG">⚖️ Per KG Net</option>
+                      <option value="TOTAL_LOT">💰 Whole Lot</option>
                     </select>
                   </div>
 
                   {/* 2. Text Box to Enter Price of Per Unit */}
-                  <div>
-                    <label className="block text-xs font-bold text-blue-900 mb-1 truncate">
-                      2. Price (per {piForm.price_basis === 'PER_CARTON' ? 'Carton' : piForm.price_basis === 'PER_UNIT' ? 'Unit' : piForm.price_basis === 'PER_KG' ? 'KG' : 'Lot'}) *
+                  <div className="flex flex-col justify-between">
+                    <label className="block text-xs font-bold text-blue-900 mb-1 min-h-[32px] flex items-end leading-tight">
+                      <span>2. Price (per {piForm.price_basis === 'PER_CARTON' ? 'Carton' : piForm.price_basis === 'PER_UNIT' ? 'Unit' : piForm.price_basis === 'PER_KG' ? 'KG' : 'Lot'}) *</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-xs font-bold text-slate-500">
@@ -2727,10 +2727,10 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                     </div>
                   </div>
 
-                  {/* 3. Text Box for Quantity (Defaults to Required Qty, Can Reduce, Cannot Exceed) */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1 truncate">
-                      3. Quantity (Cartons / Bags) *
+                  {/* 3. Text Box for Quantity */}
+                  <div className="flex flex-col justify-between">
+                    <label className="block text-xs font-bold text-slate-700 mb-1 min-h-[32px] flex items-end leading-tight">
+                      <span>3. Quantity (Cartons / Bags) *</span>
                     </label>
                     <div className="relative">
                       <input
@@ -2754,17 +2754,12 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                         }`}
                       />
                     </div>
-                    {piForm.max_required_qty ? (
-                      <span className="block text-[10px] text-slate-500 mt-1 font-semibold leading-tight">
-                        🔒 Required Qty: <strong className="text-slate-800">{piForm.max_required_qty}</strong> (Can reduce, cannot exceed)
-                      </span>
-                    ) : null}
                   </div>
 
-                  {/* 4. Text Box for Total Price (Auto Calculates & Directly Editable) */}
-                  <div>
-                    <label className="block text-xs font-bold text-emerald-900 mb-1 truncate">
-                      4. Total Price (Auto / Editable) *
+                  {/* 4. Text Box for Total Price */}
+                  <div className="flex flex-col justify-between">
+                    <label className="block text-xs font-bold text-emerald-900 mb-1 min-h-[32px] flex items-end leading-tight">
+                      <span>4. Total Price (Auto / Editable) *</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-xs font-bold text-emerald-600">
