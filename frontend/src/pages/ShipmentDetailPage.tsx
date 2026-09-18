@@ -12,6 +12,7 @@ import { CustomerSelectionTable } from '../components/CustomerSelectionTable';
 import type { CustomerFormData } from '../components/CustomerSearchInput';
 import { VendorAllocationStep } from '../components/VendorAllocationStep';
 import { CustomerRequirementsStep } from '../components/CustomerRequirementsStep';
+import { RightCalculationReportSidebar } from '../components/RightCalculationReportSidebar';
 
 interface ShipmentDetailPageProps {
   shipmentId: number;
@@ -35,6 +36,27 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
   const toggleSidebar = (val: boolean) => {
     setIsSidebarCollapsed(val);
     localStorage.setItem('a3_detail_sidebar_collapsed', String(val));
+  };
+
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState<boolean>(() => {
+    return localStorage.getItem('a3_right_report_sidebar_open') !== 'false';
+  });
+
+  const toggleRightSidebar = (val: boolean) => {
+    setIsRightSidebarOpen(val);
+    localStorage.setItem('a3_right_report_sidebar_open', String(val));
+  };
+
+  const handleUpdateRatesFromSidebar = async (usdRate: number, lkrInrRate: number) => {
+    try {
+      const updated = await apiClient.updateShipmentConfig(shipmentId, {
+        usd_rate: usdRate,
+        lkr_inr_rate: lkrInrRate
+      });
+      setShipment(updated);
+    } catch (err: any) {
+      alert('Failed to update rates: ' + (err.message || 'Unknown error'));
+    }
   };
 
 
@@ -2807,6 +2829,14 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
           </div>
         </div>
       )}
+
+      {/* Persistent Right Calculation & Duty Report Sidebar */}
+      <RightCalculationReportSidebar
+        shipment={shipment}
+        isOpen={isRightSidebarOpen}
+        onToggle={toggleRightSidebar}
+        onUpdateRates={handleUpdateRatesFromSidebar}
+      />
       </div>
     </div>
   );
