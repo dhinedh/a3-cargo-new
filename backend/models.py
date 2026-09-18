@@ -152,6 +152,7 @@ class Shipment(Base):
     common_expenses_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
     port_expenses_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
     freight_allocation_mode: Any = Column(String, default="WEIGHT")  # "WEIGHT" or "QUANTITY"
+    is_deleted: Any = Column(Boolean, default=False)
     notes: Any = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -7,7 +7,8 @@ from database import engine, Base
 from migrate_db import run_migrations
 from routes import ingest, tariff, export, items, customers, shipments, documents, excel_ingest, vendors, requirements, allocations
 
-from mongo_sync import restore_shipments_from_mongo, restore_catalog_from_mongo
+from mongo_sync import restore_shipments_from_mongo, restore_catalog_from_mongo, sync_all_shipments_to_mongo
+import asyncio
 
 # Auto-migrate SQLite schema & create database tables if they do not exist
 try:
@@ -29,6 +30,20 @@ app = FastAPI(
     description="Digitized Harmonized System (HS) Import Tariff & Shipment Management System",
     version="2.0.0"
 )
+
+async def periodic_bg_mongo_sync():
+    """Background loop running every 60 seconds to guarantee zero data loss."""
+    while True:
+        try:
+            await asyncio.sleep(60)
+            restore_shipments_from_mongo()
+            sync_all_shipments_to_mongo()
+        except Exception as e:
+            print(f"Periodic bg mongo sync notice: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(periodic_bg_mongo_sync())
 
 # CORS middleware for frontend communication
 app.add_middleware(

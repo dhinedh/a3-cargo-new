@@ -45,6 +45,7 @@ def run_migrations():
         ('shipment_vendor_proforma_items', 'discount_pct', 'NUMERIC DEFAULT 0.0'),
         ('shipment_vendor_proforma_items', 'gst_pct', 'NUMERIC DEFAULT 0.0'),
         ('shipment_vendor_proforma_items', 'total_payable', 'NUMERIC DEFAULT 0.0'),
+        ('shipments', 'is_deleted', 'BOOLEAN DEFAULT 0'),
     ]
 
     for table, col, col_def in columns_to_ensure:

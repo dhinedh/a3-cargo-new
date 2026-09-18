@@ -127,9 +127,6 @@ def sync_shipment_to_mongo(shipment_id: int):
                 "vendor_id": a.vendor_id,
                 "allocated_quantity": float(a.allocated_quantity or 0.0),
                 "allocated_unit": a.allocated_unit,
-                "vendor_quote_price": float(a.vendor_quote_price or 0.0),
-                "vendor_quote_currency": a.vendor_quote_currency,
-                "rfq_sent": a.rfq_sent,
                 "status": a.status,
                 "notes": a.notes
             })
@@ -217,8 +214,36 @@ def sync_shipment_to_mongo(shipment_id: int):
         sql_db.close()
 
 
+def delete_shipment_from_mongo(shipment_id: int):
+    """Soft-cancel shipment document in MongoDB Atlas (never delete)."""
+    db = get_mongo_db()
+    if db is None:
+        return
+    try:
+        db.shipments.update_one({"_id": shipment_id}, {"$set": {"status": "CANCELLED", "is_deleted": True}})
+        db.shipments_cloud.update_one({"_id": shipment_id}, {"$set": {"status": "CANCELLED", "is_deleted": True}})
+        logger.info(f"Soft-cancelled shipment #{shipment_id} in MongoDB Atlas.")
+    except Exception as e:
+        logger.error(f"Error soft-cancelling shipment #{shipment_id} in Mongo Atlas: {e}")
+
+
+def sync_all_shipments_to_mongo(db_session=None):
+    """Sync all local shipments in SQLite database to MongoDB Atlas cloud."""
+    sql_db = db_session if db_session is not None else SessionLocal()
+    should_close = db_session is None
+    try:
+        shipment_ids = [s.id for s in sql_db.query(models.Shipment.id).all()]
+        for s_id in shipment_ids:
+            sync_shipment_to_mongo(s_id)
+    except Exception as e:
+        logger.error(f"Error syncing all shipments to Mongo: {e}")
+    finally:
+        if should_close:
+            sql_db.close()
+
+
 def restore_shipments_from_mongo(db_session=None):
-    """Auto-restore shipments from MongoDB Atlas if local database restarted or empty."""
+    """Auto-restore shipments from MongoDB Atlas with strict shipment_id scoping and full field updates."""
     db = get_mongo_db()
     if db is None:
         return
@@ -233,6 +258,7 @@ def restore_shipments_from_mongo(db_session=None):
             return
 
         max_seq = 0
+        shipments_to_re_sync = []
         for doc in cloud_shipments:
             s_id = doc.get("id")
             if not s_id:
@@ -280,11 +306,19 @@ def restore_shipments_from_mongo(db_session=None):
 
             # Restore Customers
             for c in doc.get("customers", []):
-                c_obj = sql_db.query(models.Customer).filter(models.Customer.name == c["name"]).first()
+                c_name = c.get("name")
+                if not c_name:
+                    continue
+                c_code = c.get("code") or c_name[:4].upper()
+                c_obj = sql_db.query(models.Customer).filter(
+                    (models.Customer.name.ilike(c_name)) | (models.Customer.code == c_code)
+                ).first()
                 if not c_obj:
+                    if sql_db.query(models.Customer).filter(models.Customer.code == c_code).first():
+                        c_code = f"CUST-{(sql_db.query(models.Customer).count() + 1):04d}"
                     c_obj = models.Customer(
-                        name=c["name"],
-                        code=c.get("code", c["name"][:4].upper()),
+                        name=c_name,
+                        code=c_code,
                         country=c.get("country", "Sri Lanka")
                     )
                     sql_db.add(c_obj)
@@ -300,16 +334,29 @@ def restore_shipments_from_mongo(db_session=None):
                         allocation_pct=c.get("allocation_pct", 0.0)
                     )
                     sql_db.add(sc)
+                else:
+                    sc.allocation_pct = c.get("allocation_pct", sc.allocation_pct)
 
-            # Restore Requirements
+            # Restore Requirements (scoped to sh.id)
             for r in doc.get("requirements", []):
                 r_id = r.get("id")
-                req = sql_db.query(models.ShipmentCustomerRequirement).filter(
-                    models.ShipmentCustomerRequirement.id == r_id
-                ).first() if r_id else None
+                req = None
+                if r_id:
+                    req = sql_db.query(models.ShipmentCustomerRequirement).filter(
+                        models.ShipmentCustomerRequirement.id == r_id,
+                        models.ShipmentCustomerRequirement.shipment_id == sh.id
+                    ).first()
+                if not req and r.get("product_name"):
+                    req = sql_db.query(models.ShipmentCustomerRequirement).filter(
+                        models.ShipmentCustomerRequirement.shipment_id == sh.id,
+                        models.ShipmentCustomerRequirement.product_name == r.get("product_name")
+                    ).first()
+
                 if not req:
+                    # Check if r_id conflicts with another shipment's requirement
+                    id_to_use = r_id if (r_id and not sql_db.query(models.ShipmentCustomerRequirement).filter(models.ShipmentCustomerRequirement.id == r_id).first()) else None
                     req = models.ShipmentCustomerRequirement(
-                        id=r_id,
+                        id=id_to_use,
                         shipment_id=sh.id,
                         customer_id=r.get("customer_id", 1),
                         product_name=r.get("product_name"),
@@ -319,16 +366,33 @@ def restore_shipments_from_mongo(db_session=None):
                         notes=r.get("notes")
                     )
                     sql_db.add(req)
+                else:
+                    req.customer_id = r.get("customer_id", req.customer_id)
+                    req.product_name = r.get("product_name", req.product_name)
+                    req.hsn_code = r.get("hsn_code") or r.get("hs_code") or req.hsn_code
+                    req.required_quantity = r.get("required_quantity", req.required_quantity)
+                    req.unit = r.get("unit", req.unit)
+                    req.notes = r.get("notes", req.notes)
 
-            # Restore Products
+            # Restore Products (scoped to sh.id)
             for p in doc.get("products", []):
                 p_id = p.get("id")
-                sp = sql_db.query(models.ShipmentProduct).filter(
-                    models.ShipmentProduct.id == p_id
-                ).first() if p_id else None
+                sp = None
+                if p_id:
+                    sp = sql_db.query(models.ShipmentProduct).filter(
+                        models.ShipmentProduct.id == p_id,
+                        models.ShipmentProduct.shipment_id == sh.id
+                    ).first()
+                if not sp and p.get("product_name"):
+                    sp = sql_db.query(models.ShipmentProduct).filter(
+                        models.ShipmentProduct.shipment_id == sh.id,
+                        models.ShipmentProduct.product_name == p.get("product_name")
+                    ).first()
+
                 if not sp:
+                    id_to_use = p_id if (p_id and not sql_db.query(models.ShipmentProduct).filter(models.ShipmentProduct.id == p_id).first()) else None
                     sp = models.ShipmentProduct(
-                        id=p_id,
+                        id=id_to_use,
                         shipment_id=sh.id,
                         customer_id=p.get("customer_id", 1),
                         product_name=p.get("product_name"),
@@ -349,38 +413,70 @@ def restore_shipments_from_mongo(db_session=None):
                         final_quotation_price=p.get("final_quotation_price", 0.0)
                     )
                     sql_db.add(sp)
+                else:
+                    sp.customer_id = p.get("customer_id", sp.customer_id)
+                    sp.product_name = p.get("product_name", sp.product_name)
+                    sp.product_category = p.get("product_category", sp.product_category)
+                    sp.hsn_code = p.get("hsn_code") or p.get("hs_code") or sp.hsn_code
+                    sp.item_classification = p.get("item_classification", sp.item_classification)
+                    sp.is_active = p.get("is_active", sp.is_active)
+                    sp.stage_status = p.get("stage_status", sp.stage_status)
+                    sp.quantity = p.get("quantity", sp.quantity)
+                    sp.weight_val = p.get("weight_val", sp.weight_val)
+                    sp.weight_unit = p.get("weight_unit", sp.weight_unit)
+                    sp.unit = p.get("unit", sp.unit)
+                    sp.purchase_price = p.get("purchase_price", sp.purchase_price)
+                    sp.currency = p.get("currency") or p.get("purchase_currency") or sp.currency
+                    sp.freight_allocation_lkr = p.get("freight_allocation_lkr", sp.freight_allocation_lkr)
+                    sp.calculated_duty_lkr = p.get("calculated_duty_lkr", sp.calculated_duty_lkr)
+                    sp.total_cost_lkr = p.get("total_cost_lkr", sp.total_cost_lkr)
+                    sp.final_quotation_price = p.get("final_quotation_price", sp.final_quotation_price)
 
-            # Restore Allocations
+            # Restore Allocations (scoped to sh.id)
             for a in doc.get("allocations", []):
                 a_id = a.get("id")
-                alloc = sql_db.query(models.ShipmentVendorAllocation).filter(
-                    models.ShipmentVendorAllocation.id == a_id
-                ).first() if a_id else None
+                alloc = None
+                if a_id:
+                    alloc = sql_db.query(models.ShipmentVendorAllocation).filter(
+                        models.ShipmentVendorAllocation.id == a_id,
+                        models.ShipmentVendorAllocation.shipment_id == sh.id
+                    ).first()
+
                 if not alloc:
+                    id_to_use = a_id if (a_id and not sql_db.query(models.ShipmentVendorAllocation).filter(models.ShipmentVendorAllocation.id == a_id).first()) else None
                     alloc = models.ShipmentVendorAllocation(
-                        id=a_id,
+                        id=id_to_use,
                         shipment_id=sh.id,
                         requirement_id=a.get("requirement_id"),
                         vendor_id=a.get("vendor_id"),
                         allocated_quantity=a.get("allocated_quantity", 1.0),
                         allocated_unit=a.get("allocated_unit", "CARTON"),
-                        vendor_quote_price=a.get("vendor_quote_price", 0.0),
-                        vendor_quote_currency=a.get("vendor_quote_currency", "INR"),
-                        rfq_sent=a.get("rfq_sent", False),
                         status=a.get("status", "ALLOCATED"),
                         notes=a.get("notes")
                     )
                     sql_db.add(alloc)
+                else:
+                    alloc.requirement_id = a.get("requirement_id", alloc.requirement_id)
+                    alloc.vendor_id = a.get("vendor_id", alloc.vendor_id)
+                    alloc.allocated_quantity = a.get("allocated_quantity", alloc.allocated_quantity)
+                    alloc.allocated_unit = a.get("allocated_unit", alloc.allocated_unit)
+                    alloc.status = a.get("status", alloc.status)
+                    alloc.notes = a.get("notes", alloc.notes)
 
-            # Restore Proforma Items
+            # Restore Proforma Items (scoped to sh.id)
             for pi in doc.get("proforma_items", []):
                 pi_id = pi.get("id")
-                pi_obj = sql_db.query(models.ShipmentVendorProformaItem).filter(
-                    models.ShipmentVendorProformaItem.id == pi_id
-                ).first() if pi_id else None
+                pi_obj = None
+                if pi_id:
+                    pi_obj = sql_db.query(models.ShipmentVendorProformaItem).filter(
+                        models.ShipmentVendorProformaItem.id == pi_id,
+                        models.ShipmentVendorProformaItem.shipment_id == sh.id
+                    ).first()
+
                 if not pi_obj:
+                    id_to_use = pi_id if (pi_id and not sql_db.query(models.ShipmentVendorProformaItem).filter(models.ShipmentVendorProformaItem.id == pi_id).first()) else None
                     pi_obj = models.ShipmentVendorProformaItem(
-                        id=pi_id,
+                        id=id_to_use,
                         shipment_id=sh.id,
                         vendor_id=pi.get("vendor_id"),
                         product_name=pi.get("product_name"),
@@ -405,27 +501,67 @@ def restore_shipments_from_mongo(db_session=None):
                         notes=pi.get("notes")
                     )
                     sql_db.add(pi_obj)
+                else:
+                    pi_obj.vendor_id = pi.get("vendor_id", pi_obj.vendor_id)
+                    pi_obj.product_name = pi.get("product_name", pi_obj.product_name)
+                    pi_obj.sku = pi.get("sku", pi_obj.sku)
+                    pi_obj.hsn_code = pi.get("hsn_code", pi_obj.hsn_code)
+                    pi_obj.proforma_qty = pi.get("proforma_qty", pi_obj.proforma_qty)
+                    pi_obj.cartons_count = pi.get("cartons_count", pi_obj.cartons_count)
+                    pi_obj.units_per_carton = pi.get("units_per_carton", pi_obj.units_per_carton)
+                    pi_obj.unit_weight_val = pi.get("unit_weight_val", pi_obj.unit_weight_val)
+                    pi_obj.unit_weight_unit = pi.get("unit_weight_unit", pi_obj.unit_weight_unit)
+                    pi_obj.net_weight_kg = pi.get("net_weight_kg", pi_obj.net_weight_kg)
+                    pi_obj.gross_weight_kg = pi.get("gross_weight_kg", pi_obj.gross_weight_kg)
+                    pi_obj.proforma_price = pi.get("proforma_price", pi_obj.proforma_price)
+                    pi_obj.price_basis = pi.get("price_basis", pi_obj.price_basis)
+                    pi_obj.price_per_carton = pi.get("price_per_carton", pi_obj.price_per_carton)
+                    pi_obj.price_per_kg = pi.get("price_per_kg", pi_obj.price_per_kg)
+                    pi_obj.mrp = pi.get("mrp", pi_obj.mrp)
+                    pi_obj.discount_pct = pi.get("discount_pct", pi_obj.discount_pct)
+                    pi_obj.gst_pct = pi.get("gst_pct", pi_obj.gst_pct)
+                    pi_obj.total_payable = pi.get("total_payable", pi_obj.total_payable)
+                    pi_obj.currency = pi.get("currency", pi_obj.currency)
+                    pi_obj.notes = pi.get("notes", pi_obj.notes)
 
-            # Restore Actuals
+            # Restore Actuals (scoped to sh.id)
             act = sql_db.query(models.ShipmentActual).filter(models.ShipmentActual.shipment_id == sh.id).first()
             act_doc = doc.get("actuals")
-            if not act:
+            if not act and act_doc:
                 act = models.ShipmentActual(
                     shipment_id=sh.id,
-                    actual_duty_inr=act_doc.get("actual_duty_inr", 0.0) if act_doc else 0.0,
-                    actual_duty_lkr=act_doc.get("actual_duty_lkr", 0.0) if act_doc else 0.0,
-                    actual_cost_inr=act_doc.get("actual_cost_inr", 0.0) if act_doc else 0.0,
-                    actual_cost_lkr=act_doc.get("actual_cost_lkr", 0.0) if act_doc else 0.0,
-                    actual_revenue_inr=act_doc.get("actual_revenue_inr", 0.0) if act_doc else 0.0,
-                    actual_revenue_lkr=act_doc.get("actual_revenue_lkr", 0.0) if act_doc else 0.0,
-                    actual_profit_lkr=act_doc.get("actual_profit_lkr", 0.0) if act_doc else 0.0,
-                    ocr_source_file=act_doc.get("ocr_source_file") if act_doc else None,
-                    notes=act_doc.get("notes") if act_doc else None
+                    actual_duty_inr=act_doc.get("actual_duty_inr", 0.0),
+                    actual_duty_lkr=act_doc.get("actual_duty_lkr", 0.0),
+                    actual_cost_inr=act_doc.get("actual_cost_inr", 0.0),
+                    actual_cost_lkr=act_doc.get("actual_cost_lkr", 0.0),
+                    actual_revenue_inr=act_doc.get("actual_revenue_inr", 0.0),
+                    actual_revenue_lkr=act_doc.get("actual_revenue_lkr", 0.0),
+                    actual_profit_lkr=act_doc.get("actual_profit_lkr", 0.0),
+                    ocr_source_file=act_doc.get("ocr_source_file"),
+                    notes=act_doc.get("notes")
                 )
                 sql_db.add(act)
+            elif act and act_doc:
+                act.actual_duty_inr = act_doc.get("actual_duty_inr", act.actual_duty_inr)
+                act.actual_duty_lkr = act_doc.get("actual_duty_lkr", act.actual_duty_lkr)
+                act.actual_cost_inr = act_doc.get("actual_cost_inr", act.actual_cost_inr)
+                act.actual_cost_lkr = act_doc.get("actual_cost_lkr", act.actual_cost_lkr)
+                act.actual_revenue_inr = act_doc.get("actual_revenue_inr", act.actual_revenue_inr)
+                act.actual_revenue_lkr = act_doc.get("actual_revenue_lkr", act.actual_revenue_lkr)
+                act.actual_profit_lkr = act_doc.get("actual_profit_lkr", act.actual_profit_lkr)
+                act.ocr_source_file = act_doc.get("ocr_source_file", act.ocr_source_file)
+                act.notes = act_doc.get("notes", act.notes)
 
-            sql_db.commit()
-            logger.info(f"Restored Shipment #{sh.shipment_no} from MongoDB Atlas.")
+            shipments_to_re_sync.append(sh.id)
+
+        sql_db.commit()
+
+        # Re-sync combined state back to Mongo to merge local SQLite & Mongo Atlas
+        for s_id in shipments_to_re_sync:
+            try:
+                sync_shipment_to_mongo(s_id)
+            except Exception as sync_err:
+                logger.error(f"Error re-syncing shipment #{s_id} back to Mongo: {sync_err}")
 
         # Update sequence counter
         if max_seq > 0:

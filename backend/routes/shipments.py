@@ -56,15 +56,14 @@ def get_next_shipment_number(financial_year: Optional[str] = None, db: Session =
 
 @router.get("", response_model=List[ShipmentResponse])
 def get_shipments(db: Session = Depends(get_db)):
+    try:
+        from mongo_sync import restore_shipments_from_mongo
+        restore_shipments_from_mongo(db)
+        db.expire_all()
+    except Exception as e:
+        print(f"Auto-restore from Mongo error: {e}")
+    
     shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
-    if not shipments:
-        try:
-            from mongo_sync import restore_shipments_from_mongo
-            restore_shipments_from_mongo(db)
-            db.expire_all()
-            shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
-        except Exception as e:
-            print(f"Auto-restore from Mongo error: {e}")
 
     res = []
     for s in shipments:
@@ -190,6 +189,13 @@ def resolve_customer_ids(
 
 @router.post("", response_model=ShipmentResponse)
 def create_shipment(payload: ShipmentCreate, db: Session = Depends(get_db)):
+    try:
+        from mongo_sync import restore_shipments_from_mongo
+        restore_shipments_from_mongo(db)
+        db.expire_all()
+    except Exception as e:
+        print(f"Pre-creation restore notice: {e}")
+
     fy = payload.financial_year or get_current_financial_year()
     
     # Atomic sequence counter logic
@@ -247,6 +253,14 @@ def create_shipment(payload: ShipmentCreate, db: Session = Depends(get_db)):
 @router.get("/{shipment_id}", response_model=ShipmentResponse)
 def get_shipment_details(shipment_id: int, db: Session = Depends(get_db)):
     s = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not s:
+        try:
+            from mongo_sync import restore_shipments_from_mongo
+            restore_shipments_from_mongo(db)
+            db.expire_all()
+            s = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+        except Exception as e:
+            print(f"Restore shipment {shipment_id} notice: {e}")
     if not s:
         raise HTTPException(status_code=404, detail="Shipment not found")
         
@@ -875,16 +889,18 @@ def delete_shipment(shipment_id: int, db: Session = Depends(get_db)):
     if not s:
         raise HTTPException(status_code=404, detail="Shipment not found")
 
-    db.delete(s)
+    # Soft Delete: Preserve shipment permanently in DB with status CANCELLED
+    s.status = "CANCELLED"
+    s.is_deleted = True
     db.commit()
 
     try:
-        from mongo_sync import delete_shipment_from_mongo
-        delete_shipment_from_mongo(shipment_id)
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
     except Exception as e:
-        print(f"Mongo delete notice: {e}")
+        print(f"Mongo soft-delete notice: {e}")
 
-    return {"message": f"Shipment #{shipment_id} deleted successfully from SQLite and Cloud."}
+    return {"message": f"Shipment #{shipment_id} soft-cancelled. Preserved permanently in Database."}
 
 
 
