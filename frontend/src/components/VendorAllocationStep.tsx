@@ -2677,7 +2677,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                   
                   {/* 1. Dropdown Button to Select Unit Basis */}
                   <div className="flex flex-col justify-between">
-                    <label className="block text-xs font-bold text-slate-700 mb-1 min-h-[32px] flex items-end leading-tight">
+                    <label className="block text-xs font-bold text-slate-700 mb-1 min-h-[28px] flex items-end leading-tight">
                       <span>1. Select Pricing Unit *</span>
                     </label>
                     <select
@@ -2685,16 +2685,19 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                       onChange={e => updatePiFormField('price_basis', e.target.value as any)}
                       className="w-full px-2 py-2 border-2 border-blue-400 focus:border-blue-600 rounded-lg text-xs font-bold text-blue-900 bg-blue-50/50 shadow-xs cursor-pointer"
                     >
-                      <option value="PER_CARTON">🛍️ Per Carton</option>
-                      <option value="PER_UNIT">📦 Per Unit (PCS)</option>
-                      <option value="PER_KG">⚖️ Per KG Net</option>
-                      <option value="TOTAL_LOT">💰 Whole Lot</option>
+                      <option value="PER_CARTON">Per Carton</option>
+                      <option value="PER_UNIT">Per Unit (PCS)</option>
+                      <option value="PER_KG">Per KG Net</option>
+                      <option value="TOTAL_LOT">Whole Lot</option>
                     </select>
+                    <span className="block text-[10px] text-slate-400 mt-1 font-medium leading-tight">
+                      Basis for calculation
+                    </span>
                   </div>
 
                   {/* 2. Text Box to Enter Price of Per Unit */}
                   <div className="flex flex-col justify-between">
-                    <label className="block text-xs font-bold text-blue-900 mb-1 min-h-[32px] flex items-end leading-tight">
+                    <label className="block text-xs font-bold text-blue-900 mb-1 min-h-[28px] flex items-end leading-tight">
                       <span>2. Price (per {piForm.price_basis === 'PER_CARTON' ? 'Carton' : piForm.price_basis === 'PER_UNIT' ? 'Unit' : piForm.price_basis === 'PER_KG' ? 'KG' : 'Lot'}) *</span>
                     </label>
                     <div className="relative">
@@ -2725,12 +2728,15 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                         className="w-full pl-7 pr-2 py-2 border-2 border-blue-500 focus:border-blue-700 rounded-lg text-xs font-mono font-extrabold text-blue-950 bg-white shadow-xs"
                       />
                     </div>
+                    <span className="block text-[10px] text-blue-600 mt-1 font-medium leading-tight">
+                      Price per selected unit
+                    </span>
                   </div>
 
                   {/* 3. Text Box for Quantity */}
                   <div className="flex flex-col justify-between">
-                    <label className="block text-xs font-bold text-slate-700 mb-1 min-h-[32px] flex items-end leading-tight">
-                      <span>3. Quantity (Cartons / Bags) *</span>
+                    <label className="block text-xs font-bold text-slate-700 mb-1 min-h-[28px] flex items-end leading-tight">
+                      <span>3. Quantity ({piForm.price_basis === 'PER_CARTON' ? 'Cartons' : piForm.price_basis === 'PER_KG' ? 'KG' : piForm.price_basis === 'PER_UNIT' ? 'Units' : 'Lot'}) *</span>
                     </label>
                     <div className="relative">
                       <input
@@ -2754,12 +2760,21 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                         }`}
                       />
                     </div>
+                    {piForm.max_required_qty ? (
+                      <span className="block text-[10px] text-amber-700 mt-1 font-medium leading-tight">
+                        🔒 Required Qty: {piForm.max_required_qty} (Max)
+                      </span>
+                    ) : (
+                      <span className="block text-[10px] text-slate-400 mt-1 font-medium leading-tight">
+                        Total quantity count
+                      </span>
+                    )}
                   </div>
 
                   {/* 4. Text Box for Total Price */}
                   <div className="flex flex-col justify-between">
-                    <label className="block text-xs font-bold text-emerald-900 mb-1 min-h-[32px] flex items-end leading-tight">
-                      <span>4. Total Price (Auto / Editable) *</span>
+                    <label className="block text-xs font-bold text-emerald-900 mb-1 min-h-[28px] flex items-end leading-tight">
+                      <span>4. Total Price ({piForm.currency}) *</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-xs font-bold text-emerald-600">
@@ -2775,8 +2790,8 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                         className="w-full pl-7 pr-2 py-2 border-2 border-emerald-500 focus:border-emerald-700 rounded-lg text-xs font-mono font-extrabold text-emerald-950 bg-emerald-50/50 shadow-xs"
                       />
                     </div>
-                    <span className="block text-[10px] text-emerald-700 mt-1 font-medium">
-                      ⚡ Auto-computed (or edit directly)
+                    <span className="block text-[10px] text-emerald-700 mt-1 font-medium leading-tight">
+                      ⚡ Auto-computed (editable)
                     </span>
                   </div>
 
