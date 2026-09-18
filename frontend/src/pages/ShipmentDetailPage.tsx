@@ -913,6 +913,19 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
               <Download className="w-3.5 h-3.5" />
               <span>Full Workbook (.xlsx)</span>
             </a>
+
+            <button
+              onClick={() => toggleRightSidebar(!isRightSidebarOpen)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                isRightSidebarOpen
+                  ? 'bg-slate-900 text-indigo-300 border-slate-700 shadow-xs'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Toggle Duty & Calculation Report Panel"
+            >
+              <Calculator className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{isRightSidebarOpen ? 'Hide Duty Panel' : 'Duty & Profit Report'}</span>
+            </button>
           </div>
         </header>
 
