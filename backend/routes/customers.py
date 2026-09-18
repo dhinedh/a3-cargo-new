@@ -10,7 +10,16 @@ router = APIRouter(prefix="/api/v1/customers", tags=["Customers"])
 
 @router.get("", response_model=List[CustomerResponse])
 def get_customers(db: Session = Depends(get_db)):
-    return db.query(Customer).order_by(Customer.name.asc()).all()
+    custs = db.query(Customer).order_by(Customer.name.asc()).all()
+    if not custs:
+        try:
+            from mongo_sync import restore_customers_from_mongo
+            restore_customers_from_mongo(db)
+            db.expire_all()
+            custs = db.query(Customer).order_by(Customer.name.asc()).all()
+        except Exception as e:
+            print(f"Auto-restore customers notice: {e}")
+    return custs
 
 @router.post("", response_model=CustomerResponse)
 def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
@@ -30,6 +39,11 @@ def create_customer(payload: CustomerCreate, db: Session = Depends(get_db)):
     db.add(cust)
     db.commit()
     db.refresh(cust)
+    try:
+        from mongo_sync import sync_customer_to_mongo
+        sync_customer_to_mongo(cust.id)
+    except Exception as e:
+        print(f"Mongo sync customer notice: {e}")
     return cust
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
@@ -58,10 +72,17 @@ def update_customer(customer_id: int, payload: CustomerUpdate, db: Session = Dep
     if payload.country is not None:
         cust.country = payload.country
     if payload.tax_id is not None:
+        # pyrefly: ignore [bad-assignment]
         cust.tax_id = payload.tax_id
+
         
     db.commit()
     db.refresh(cust)
+    try:
+        from mongo_sync import sync_customer_to_mongo
+        sync_customer_to_mongo(cust.id)
+    except Exception as e:
+        print(f"Mongo sync customer notice: {e}")
     return cust
 
 @router.delete("/{customer_id}")
@@ -71,4 +92,10 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Customer not found")
     db.delete(cust)
     db.commit()
+    try:
+        from mongo_sync import delete_customer_from_mongo
+        delete_customer_from_mongo(customer_id)
+    except Exception as e:
+        print(f"Mongo delete customer notice: {e}")
     return {"message": "Customer deleted successfully"}
+

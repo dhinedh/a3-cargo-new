@@ -224,3 +224,8 @@ def recalculate_shipment(db: Session, shipment: Shipment):
         p.predicted_profit = Decimal(str(round(predicted_profit_lkr, 2)))
 
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment.id)
+    except Exception as e:
+        print(f"Auto mongo sync notice from recalculate_shipment: {e}")

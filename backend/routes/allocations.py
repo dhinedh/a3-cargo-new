@@ -54,6 +54,11 @@ def create_vendor_allocation(shipment_id: int, payload: schemas.ShipmentVendorAl
     db.add(alloc)
     db.commit()
     db.refresh(alloc)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return alloc
 
 @router.get("/{shipment_id}/proforma-items", response_model=List[schemas.ShipmentVendorProformaItemResponse])
@@ -792,6 +797,11 @@ def record_vendor_payment(
 
     db.commit()
     db.refresh(pymt)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {
         "payment_id": pymt.id,
         "vendor_id": vendor_id,
@@ -1039,6 +1049,11 @@ def compare_proforma_actual_invoice(
     db.add(act)
 
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"shipment_id": shipment_id, "vendor_id": vendor_id, "comparison": comparison_results}
 
 
@@ -1107,6 +1122,11 @@ def record_receiving_verification(
     db.add(rec)
     db.commit()
     db.refresh(rec)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return rec
 
 
@@ -1213,6 +1233,11 @@ def generate_packing_list_from_receiving(
     )
     db.add(act)
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
 
     return {
         "id": pl.id,
@@ -1576,6 +1601,11 @@ def approve_quotation_item(shipment_id: int, item_id: int, payload: Optional[dic
     )
     db.add(hist)
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"message": "Product approved", "id": q.id, "status": "APPROVED", "quantity": new_qty, "selling_price": new_price}
 
 
@@ -1602,6 +1632,11 @@ def remove_quotation_item(shipment_id: int, item_id: int, db: Session = Depends(
     )
     db.add(hist)
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"message": "Product removed", "id": q.id, "status": "REJECTED"}
 
 
@@ -1643,6 +1678,11 @@ def negotiate_quotation_item(shipment_id: int, item_id: int, payload: dict, db: 
     )
     db.add(hist)
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"message": "Negotiation request saved", "id": q.id, "status": "NEGOTIATED"}
 
 

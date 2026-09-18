@@ -797,6 +797,11 @@ def update_shipment_actuals(shipment_id: int, payload: ShipmentActualUpdate, db:
 
     db.commit()
     db.refresh(actual)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return actual
 
 
@@ -851,12 +856,36 @@ async def ocr_duty_invoice(shipment_id: int, file: UploadFile = File(...), db: S
 
     db.commit()
     db.refresh(actual)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {
         "filename": file.filename,
         "extracted_duty_lkr": actual.actual_duty_lkr,
         "extracted_cost_lkr": actual.actual_cost_lkr,
         "raw_text_snippet": extracted_text[:500]
     }
+
+
+@router.delete("/{shipment_id}")
+def delete_shipment(shipment_id: int, db: Session = Depends(get_db)):
+    s = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+
+    db.delete(s)
+    db.commit()
+
+    try:
+        from mongo_sync import delete_shipment_from_mongo
+        delete_shipment_from_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo delete notice: {e}")
+
+    return {"message": f"Shipment #{shipment_id} deleted successfully from SQLite and Cloud."}
+
 
 
 @router.get("/reports/dashboard", response_model=DashboardSummaryResponse)

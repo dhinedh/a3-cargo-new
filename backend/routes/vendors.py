@@ -13,6 +13,14 @@ def list_vendors(
     q: Optional[str] = Query(None, description="Search vendor by name or code"),
     db: Session = Depends(get_db)
 ):
+    if db.query(models.Vendor).count() == 0:
+        try:
+            from mongo_sync import restore_vendors_from_mongo
+            restore_vendors_from_mongo(db)
+            db.expire_all()
+        except Exception as e:
+            print(f"Auto-restore vendors notice: {e}")
+
     query = db.query(models.Vendor)
     if q:
         clean_q = q.strip()
@@ -157,6 +165,11 @@ def create_vendor(payload: schemas.VendorCreate, db: Session = Depends(get_db)):
     db.add(v)
     db.commit()
     db.refresh(v)
+    try:
+        from mongo_sync import sync_vendor_to_mongo
+        sync_vendor_to_mongo(v.id)
+    except Exception as e:
+        print(f"Mongo sync vendor notice: {e}")
     return v
 
 @router.put("/{vendor_id}", response_model=schemas.VendorResponse)
@@ -213,6 +226,11 @@ def update_vendor(vendor_id: int, payload: schemas.VendorUpdate, db: Session = D
 
     db.commit()
     db.refresh(v)
+    try:
+        from mongo_sync import sync_vendor_to_mongo
+        sync_vendor_to_mongo(v.id)
+    except Exception as e:
+        print(f"Mongo sync vendor notice: {e}")
     return v
 
 @router.delete("/{vendor_id}")
@@ -223,6 +241,11 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
 
     db.delete(v)
     db.commit()
+    try:
+        from mongo_sync import delete_vendor_from_mongo
+        delete_vendor_from_mongo(vendor_id)
+    except Exception as e:
+        print(f"Mongo delete vendor notice: {e}")
     return {"message": "Vendor deleted successfully"}
 
 @router.post("/{vendor_id}/mappings", response_model=schemas.VendorProductMappingResponse)

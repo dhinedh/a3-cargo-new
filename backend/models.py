@@ -1,7 +1,7 @@
 from typing import Optional, Any
 # pyrefly: ignore [missing-import]
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON, Numeric
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 from datetime import datetime
 from database import Base
 
@@ -105,23 +105,25 @@ class ItemEntry(Base):
 class Customer(Base):
     __tablename__ = "customers"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
-    code = Column(String, unique=True, index=True, nullable=False)
-    email = Column(String, nullable=True)
-    phone = Column(String, nullable=True)
-    address = Column(Text, nullable=True)
-    country = Column(String, default="Sri Lanka")  # "India", "Sri Lanka", etc.
-    tax_id = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = Column(Integer, primary_key=True, index=True) # type: ignore
+    name: Mapped[str] = Column(String, nullable=False, index=True) # type: ignore
+    code: Mapped[str] = Column(String, unique=True, index=True, nullable=False) # type: ignore
+    email: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    phone: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    address: Mapped[Optional[str]] = Column(Text, nullable=True) # type: ignore
+    country: Mapped[Optional[str]] = Column(String, default="Sri Lanka") # type: ignore
+    tax_id: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    created_at: Mapped[Optional[datetime]] = Column(DateTime, default=datetime.utcnow) # type: ignore
+
 
 
 class ShipmentSequence(Base):
     __tablename__ = "shipment_sequences"
 
-    id = Column(Integer, primary_key=True, index=True)
-    financial_year = Column(String, unique=True, nullable=False)  # e.g. "2026-27"
-    last_sequence = Column(Integer, default=0, nullable=False)
+    id: Mapped[int] = Column(Integer, primary_key=True, index=True) # type: ignore
+    financial_year: Mapped[str] = Column(String, unique=True, nullable=False) # type: ignore
+    last_sequence: Mapped[int] = Column(Integer, default=0, nullable=False) # type: ignore
+
 
 
 class Shipment(Base):
@@ -262,28 +264,29 @@ class ShipmentActual(Base):
 class Vendor(Base):
     __tablename__ = "vendors"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
-    code = Column(String, unique=True, index=True, nullable=False)
-    legal_name = Column(String, nullable=True)
-    trade_name = Column(String, nullable=True)
-    company_type = Column(String, nullable=True)
-    contact_person = Column(String, nullable=True)
-    email = Column(String, nullable=True)
-    phone = Column(String, nullable=True)
-    address = Column(Text, nullable=True)
-    country = Column(String, default="India")
-    gstin = Column(String, nullable=True)
-    pan_number = Column(String, nullable=True)
-    bank_account_number = Column(String, nullable=True)
-    bank_ifsc_code = Column(String, nullable=True)
-    bank_name = Column(String, nullable=True)
-    bank_branch = Column(String, nullable=True)
-    main_category = Column(String, nullable=True)
-    sub_categories = Column(JSON, default=list)
-    products_supplied = Column(JSON, default=list)
-    status = Column(String, default="Active Supplier")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = Column(Integer, primary_key=True, index=True) # type: ignore
+    name: Mapped[str] = Column(String, nullable=False, index=True) # type: ignore
+    code: Mapped[str] = Column(String, unique=True, index=True, nullable=False) # type: ignore
+    legal_name: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    trade_name: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    company_type: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    contact_person: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    email: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    phone: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    address: Mapped[Optional[str]] = Column(Text, nullable=True) # type: ignore
+    country: Mapped[Optional[str]] = Column(String, default="India") # type: ignore
+    gstin: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    pan_number: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    bank_account_number: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    bank_ifsc_code: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    bank_name: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    bank_branch: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    main_category: Mapped[Optional[str]] = Column(String, nullable=True) # type: ignore
+    sub_categories: Mapped[Optional[list]] = Column(JSON, default=list) # type: ignore
+    products_supplied: Mapped[Optional[list]] = Column(JSON, default=list) # type: ignore
+    status: Mapped[Optional[str]] = Column(String, default="Active Supplier") # type: ignore
+    created_at: Mapped[Optional[datetime]] = Column(DateTime, default=datetime.utcnow) # type: ignore
+
 
     mappings = relationship("VendorProductMapping", back_populates="vendor", cascade="all, delete-orphan")
 

@@ -383,6 +383,11 @@ def update_customer_requirement(shipment_id: int, req_id: int, payload: schemas.
 
     db.commit()
     db.refresh(req)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return req
 
 @router.delete("/{shipment_id}/requirements/{req_id}")
@@ -396,6 +401,11 @@ def delete_customer_requirement(shipment_id: int, req_id: int, db: Session = Dep
 
     db.delete(req)
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"message": "Requirement deleted successfully"}
 
 class BulkDeleteRequirementsPayload(BaseModel):
@@ -420,6 +430,11 @@ def bulk_delete_customer_requirements(
     ).delete(synchronize_session=False)
 
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"message": f"Successfully deleted {deleted_count} requirement(s)", "deleted_count": deleted_count}
 
 @router.delete("/{shipment_id}/requirements/clear-all")
@@ -433,6 +448,11 @@ def clear_all_customer_requirements(shipment_id: int, db: Session = Depends(get_
     ).delete(synchronize_session=False)
 
     db.commit()
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return {"message": f"Successfully cleared all {deleted_count} customer requirements", "deleted_count": deleted_count}
 
 @router.post("/{shipment_id}/requirements/upload-excel", response_model=List[schemas.ShipmentCustomerRequirementResponse])
@@ -568,7 +588,13 @@ async def upload_excel_requirements(shipment_id: int, file: UploadFile = File(..
     db.commit()
     for r in created_requirements:
         db.refresh(r)
+    try:
+        from mongo_sync import sync_shipment_to_mongo
+        sync_shipment_to_mongo(shipment_id)
+    except Exception as e:
+        print(f"Mongo sync notice: {e}")
     return created_requirements
+
 
 @router.get("/{shipment_id}/requirements/export/excel")
 def export_customer_requirements_excel(shipment_id: int, db: Session = Depends(get_db)):
