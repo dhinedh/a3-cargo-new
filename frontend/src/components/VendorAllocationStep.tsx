@@ -428,7 +428,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
       setProformaItems(pis);
 
       if (vends.length > 0 && selectedVendorIds.length === 0) {
-        setSelectedVendorIds([vends[0].id]);
+        setSelectedVendorIds(vends.map(v => v.id));
       }
       if (reqs.length > 0 && !selectedReqId) {
         setSelectedReqId(reqs[0].id);

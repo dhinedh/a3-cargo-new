@@ -76,6 +76,7 @@ export const CustomerRequirementsStep: React.FC<CustomerRequirementsStepProps> =
       setLoading(true);
       const reqs = await apiClient.getCustomerRequirements(shipmentId);
       setRequirements(reqs);
+      setSelectedReqIds(reqs.map(r => r.id));
       const hist = await apiClient.getRequirementHistory(shipmentId);
       setHistory(hist);
     } catch (err) {
