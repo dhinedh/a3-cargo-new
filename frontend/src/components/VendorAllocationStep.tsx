@@ -2605,44 +2605,6 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                 </div>
               </div>
 
-              {/* Dynamic Packaging Grid */}
-              <div className="grid grid-cols-3 gap-3 bg-blue-50/50 p-3 rounded-xl border border-blue-200/80">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cartons / Outer Bags *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={piForm.cartons_count}
-                    onChange={e => updatePiFormField('cartons_count', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Units per Carton / Bag *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={piForm.units_per_carton}
-                    onChange={e => updatePiFormField('units_per_carton', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-blue-900 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Unit Weight (KG) *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={piForm.unit_weight_val}
-                    onChange={e => updatePiFormField('unit_weight_val', Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 bg-white"
-                  />
-                </div>
-              </div>
 
               {/* Calculated Summary Banner */}
               <div className="grid grid-cols-3 gap-2 bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs">
