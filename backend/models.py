@@ -245,20 +245,20 @@ class ShipmentProduct(Base):
 class ShipmentActual(Base):
     __tablename__ = "shipment_actuals"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), unique=True, nullable=False)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), unique=True, nullable=False)
 
-    actual_duty_inr = Column(Numeric(precision=18, scale=4), default=0.0)
-    actual_duty_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    actual_cost_inr = Column(Numeric(precision=18, scale=4), default=0.0)
-    actual_cost_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    actual_revenue_inr = Column(Numeric(precision=18, scale=4), default=0.0)
-    actual_revenue_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
-    actual_profit_lkr = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_duty_inr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_duty_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_cost_inr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_cost_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_revenue_inr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_revenue_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    actual_profit_lkr: Any = Column(Numeric(precision=18, scale=4), default=0.0)
 
-    ocr_source_file = Column(String, nullable=True)
-    notes = Column(Text, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    ocr_source_file: Any = Column(String, nullable=True)
+    notes: Any = Column(Text, nullable=True)
+    updated_at: Any = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     shipment = relationship("Shipment", back_populates="actuals")
 
@@ -449,18 +449,18 @@ class CustomerQuotationHistory(Base):
 class ShipmentPurchaseOrder(Base):
     __tablename__ = "shipment_purchase_orders"
 
-    id = Column(Integer, primary_key=True, index=True)
-    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False, index=True)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    shipment_id: Any = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    vendor_id: Any = Column(Integer, ForeignKey("vendors.id"), nullable=False, index=True)
 
-    po_number = Column(String, nullable=False, index=True)
-    po_date = Column(String, nullable=True)
-    total_amount = Column(Numeric(precision=18, scale=4), default=0.0)
-    currency = Column(String, default="INR")
-    status = Column(String, default="CONFIRMED")  # DRAFT, ISSUED, CONFIRMED, CANCELLED
-    notes = Column(Text, nullable=True)
+    po_number: Any = Column(String, nullable=False, index=True)
+    po_date: Any = Column(String, nullable=True)
+    total_amount: Any = Column(Numeric(precision=18, scale=4), default=0.0)
+    currency: Any = Column(String, default="INR")
+    status: Any = Column(String, default="CONFIRMED")  # DRAFT, ISSUED, CONFIRMED, CANCELLED
+    notes: Any = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at: Any = Column(DateTime, default=datetime.utcnow)
 
     shipment = relationship("Shipment", back_populates="purchase_orders")
     vendor = relationship("Vendor")

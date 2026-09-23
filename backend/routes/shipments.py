@@ -633,8 +633,8 @@ def approve_quotation_and_create_po(
 
         po_no = f"PO-{s.shipment_no}-{v_id}"
         if existing_po:
-            existing_po.total_amount = po_total
-            existing_po.status = "CONFIRMED"
+            existing_po.total_amount = po_total  # type: ignore # pyrefly: ignore
+            existing_po.status = "CONFIRMED"  # type: ignore # pyrefly: ignore
             existing_po.notes = approval_notes
             pos_created.append(existing_po)
         else:
@@ -786,13 +786,13 @@ def update_shipment_actuals(shipment_id: int, payload: ShipmentActualUpdate, db:
         actual = ShipmentActual(shipment_id=shipment_id)
         db.add(actual)
 
-    actual.actual_duty_inr = payload.actual_duty_inr
-    actual.actual_duty_lkr = payload.actual_duty_lkr
-    actual.actual_cost_inr = payload.actual_cost_inr
-    actual.actual_cost_lkr = payload.actual_cost_lkr
-    actual.actual_revenue_inr = payload.actual_revenue_inr
-    actual.actual_revenue_lkr = payload.actual_revenue_lkr
-    actual.actual_profit_lkr = payload.actual_profit_lkr
+    actual.actual_duty_inr = payload.actual_duty_inr  # type: ignore # pyrefly: ignore
+    actual.actual_duty_lkr = payload.actual_duty_lkr  # type: ignore # pyrefly: ignore
+    actual.actual_cost_inr = payload.actual_cost_inr  # type: ignore # pyrefly: ignore
+    actual.actual_cost_lkr = payload.actual_cost_lkr  # type: ignore # pyrefly: ignore
+    actual.actual_revenue_inr = payload.actual_revenue_inr  # type: ignore # pyrefly: ignore
+    actual.actual_revenue_lkr = payload.actual_revenue_lkr  # type: ignore # pyrefly: ignore
+    actual.actual_profit_lkr = payload.actual_profit_lkr  # type: ignore # pyrefly: ignore
     if payload.notes: actual.notes = payload.notes
 
     db.commit()
