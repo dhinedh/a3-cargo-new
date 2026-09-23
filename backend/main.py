@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from migrate_db import run_migrations
-from routes import ingest, tariff, export, items, customers, shipments, documents, excel_ingest, vendors, requirements, allocations
+from routes import ingest, tariff, export, items, customers, shipments, documents, excel_ingest, vendors, requirements, allocations, traceability
 
 from mongo_sync import restore_shipments_from_mongo, restore_catalog_from_mongo, sync_all_shipments_to_mongo
 import asyncio
@@ -87,6 +87,7 @@ app.include_router(excel_ingest.router)
 app.include_router(vendors.router)
 app.include_router(requirements.router)
 app.include_router(allocations.router)
+app.include_router(traceability.router)
 
 @app.get("/")
 def root():

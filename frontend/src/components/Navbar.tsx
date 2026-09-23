@@ -12,7 +12,8 @@ import {
   Search,
   HelpCircle,
   Settings,
-  Boxes
+  Boxes,
+  GitFork
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -215,7 +216,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Tariff Explorer</span>
             </button>
 
-            {/* 6. ANALYTICS */}
+            {/* 6. TRACKING & TRACEABILITY */}
+            <button
+              onClick={() => setActiveTab('tracking')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                activeTab === 'tracking'
+                  ? 'bg-[#172B4D] text-[#4C9AFF]'
+                  : 'text-[#DEEBFF] hover:bg-[#172B4D]/60 hover:text-white'
+              }`}
+            >
+              <GitFork className="w-3.5 h-3.5 text-[#4C9AFF]" />
+              <span>Tracking</span>
+              <span className="text-[9px] bg-[#0C66E4] text-white px-1 rounded-full ml-0.5">NEW</span>
+            </button>
+
+            {/* 7. ANALYTICS */}
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${

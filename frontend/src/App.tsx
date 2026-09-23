@@ -18,11 +18,24 @@ import { ShipmentDetailPage } from './pages/ShipmentDetailPage';
 import { CustomerMasterPage } from './pages/CustomerMasterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { VendorManagementPage } from './pages/VendorManagementPage';
+import { TrackingDashboardPage } from './pages/TrackingDashboardPage';
+import { TraceabilityPanel } from './components/TraceabilityPanel';
 
 export function App() {
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<string>('shipments');
   const [selectedShipmentId, setSelectedShipmentId] = useState<number | null>(null);
+
+  // Global Traceability Drawer state
+  const [isTraceabilityOpen, setIsTraceabilityOpen] = useState<boolean>(false);
+  const [traceRootType, setTraceRootType] = useState<string>('SHIPMENT');
+  const [traceRootId, setTraceRootId] = useState<number | undefined>();
+
+  const handleOpenTraceability = (type: string, id: number) => {
+    setTraceRootType(type);
+    setTraceRootId(id);
+    setIsTraceabilityOpen(true);
+  };
 
   const handleCreateNewShipment = async () => {
     try {
@@ -178,6 +191,14 @@ export function App() {
           <ShipmentDetailPage
             shipmentId={selectedShipmentId}
             onBack={() => setActiveTab('shipments')}
+            onOpenTraceability={handleOpenTraceability}
+          />
+        )}
+
+        {activeTab === 'tracking' && (
+          <TrackingDashboardPage
+            onSelectShipment={handleSelectShipment}
+            onOpenTraceability={handleOpenTraceability}
           />
         )}
 
@@ -378,8 +399,15 @@ export function App() {
               )}
             </div>
           </div>
-        )}
       </main>
+
+      {/* Global Traceability Drawer */}
+      <TraceabilityPanel
+        isOpen={isTraceabilityOpen}
+        onClose={() => setIsTraceabilityOpen(false)}
+        rootEntityType={traceRootType}
+        rootEntityId={traceRootId}
+      />
     </div>
   );
 }

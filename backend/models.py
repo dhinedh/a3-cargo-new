@@ -170,6 +170,7 @@ class Shipment(Base):
     receiving_verifications = relationship("ShipmentReceivingVerification", back_populates="shipment", cascade="all, delete-orphan")
     activity_logs = relationship("ShipmentActivityLog", back_populates="shipment", cascade="all, delete-orphan")
     packing_lists = relationship("ShipmentPackingList", back_populates="shipment", cascade="all, delete-orphan")
+    milestones = relationship("ShipmentMilestone", back_populates="shipment", cascade="all, delete-orphan", order_by="ShipmentMilestone.sequence")
 
 
 class ShipmentCustomer(Base):
@@ -650,3 +651,30 @@ class ShipmentPackingListItem(Base):
     packing_list = relationship("ShipmentPackingList", back_populates="items")
 
 
+class ShipmentMilestone(Base):
+    __tablename__ = "shipment_milestones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False, index=True)
+    
+    milestone_code = Column(String, nullable=False, index=True)
+    milestone_name = Column(String, nullable=False)
+    sequence = Column(Integer, nullable=False, default=1)
+    status = Column(String, nullable=False, default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, BLOCKED, SKIPPED, CANCELLED
+    workflow_mode = Column(String, default="SEA_FCL")  # SEA_FCL, SEA_LCL, AIR, DOMESTIC
+
+    planned_date = Column(DateTime, nullable=True)
+    due_date = Column(DateTime, nullable=True)
+    actual_date = Column(DateTime, nullable=True)
+    delay_days = Column(Integer, default=0)
+    delay_reason = Column(Text, nullable=True)
+    owner_person = Column(String, nullable=True, default="Operations Manager")
+    remarks = Column(Text, nullable=True)
+    
+    source_entity_type = Column(String, nullable=True)  # PO, PI, VENDOR_DELIVERY, PACKING_LIST, INDIAN_INVOICE, COLOMBO_INVOICE
+    source_entity_id = Column(Integer, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    shipment = relationship("Shipment", back_populates="milestones")

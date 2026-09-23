@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Settings, Package, UploadCloud, Users, FileText, Download,
   TrendingUp, Plus, Trash2, FileSpreadsheet, FileSearch, Sparkles,
-  Search, Tag, Loader2, BookOpen, Star, CheckCircle2, History, Calculator
+  Search, Tag, Loader2, BookOpen, Star, CheckCircle2, History, Calculator, GitFork
 } from 'lucide-react';
 import type { Shipment, Customer, ShipmentProduct, TariffSearchResult, ItemEntry, UnifiedProductSearchResult } from '../types';
 import { apiClient } from '../api/client';
@@ -13,17 +13,19 @@ import type { CustomerFormData } from '../components/CustomerSearchInput';
 import { VendorAllocationStep } from '../components/VendorAllocationStep';
 import { CustomerRequirementsStep } from '../components/CustomerRequirementsStep';
 import { RightCalculationReportSidebar } from '../components/RightCalculationReportSidebar';
+import { ShipmentTrackingTimeline } from '../components/ShipmentTrackingTimeline';
 
 interface ShipmentDetailPageProps {
   shipmentId: number;
   onBack: () => void;
+  onOpenTraceability?: (type: string, id: number) => void;
 }
 
-export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipmentId, onBack }) => {
+export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipmentId, onBack, onOpenTraceability }) => {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  type MainTabType = 'config' | 'customers' | 'requirements' | 'customer_alloc' | 'products' | 'quotations' | 'documents' | 'actuals' | 'audit';
+  type MainTabType = 'config' | 'customers' | 'requirements' | 'customer_alloc' | 'products' | 'quotations' | 'documents' | 'actuals' | 'audit' | 'tracking';
   const [activeTab, setActiveTabState] = useState<MainTabType>(() => {
     const saved = localStorage.getItem(`a3_shipment_${shipmentId}_main_tab`);
     return (saved as MainTabType) || 'config';
@@ -681,6 +683,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
     { id: 'documents' as const, stepNo: 7, title: '7. Invoices & Export Studio', subtitle: 'Colombo & Indian docs', icon: FileText },
     { id: 'actuals' as const, stepNo: 8, title: '8. Actuals & Settlement', subtitle: 'OCR & realized profit', icon: TrendingUp },
     { id: 'audit' as const, stepNo: 9, title: '9. Audit Trail (Req 15)', subtitle: 'Removal history trail', icon: History },
+    { id: 'tracking' as const, stepNo: 10, title: '10. Operational Tracking', subtitle: '23 Milestones & Traceability', icon: GitFork },
   ];
 
   const VENDOR_SUB_STEPS = [
@@ -707,6 +710,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
     { tab: 'documents', subTab: null, label: '7. Invoices & Export Studio' },
     { tab: 'actuals', subTab: null, label: '8. Actuals & Settlement' },
     { tab: 'audit', subTab: null, label: '9. Audit Trail (Req 15)' },
+    { tab: 'tracking', subTab: null, label: '10. Operational Tracking' },
   ];
 
   const currentFlatIndex = flatSteps.findIndex(s => {
@@ -913,6 +917,17 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
               <Download className="w-3.5 h-3.5" />
               <span>Full Workbook (.xlsx)</span>
             </a>
+
+            {onOpenTraceability && (
+              <button
+                onClick={() => onOpenTraceability('SHIPMENT', shipment.id)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                title="View Complete Dynamic Traceability Graph & Audit Trail"
+              >
+                <GitFork className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Traceability</span>
+              </button>
+            )}
 
             <button
               onClick={() => toggleRightSidebar(!isRightSidebarOpen)}
@@ -2333,6 +2348,11 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
           </div>
         </div>
       )}
+
+      {/* Step 10: Operational Tracking */}
+      {activeTab === 'tracking' && (
+        <ShipmentTrackingTimeline shipmentId={shipment.id} />
+      )}
       </main>
 
       {/* Manual Product Add/Edit Modal */}
@@ -2849,6 +2869,7 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
         isOpen={isRightSidebarOpen}
         onToggle={toggleRightSidebar}
         onUpdateRates={handleUpdateRatesFromSidebar}
+        onOpenTraceability={onOpenTraceability}
       />
       </div>
     </div>

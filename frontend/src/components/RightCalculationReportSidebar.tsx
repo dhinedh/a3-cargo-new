@@ -28,13 +28,15 @@ interface RightCalculationReportSidebarProps {
   isOpen: boolean;
   onToggle: (open: boolean) => void;
   onUpdateRates?: (usdRate: number, lkrInrRate: number) => void;
+  onOpenTraceability?: (type: string, id: number) => void;
 }
 
 export const RightCalculationReportSidebar: React.FC<RightCalculationReportSidebarProps> = ({
   shipment,
   isOpen,
   onToggle,
-  onUpdateRates
+  onUpdateRates,
+  onOpenTraceability
 }) => {
   const [activeTab, setActiveTab] = useState<'duty' | 'breakdown' | 'rates' | 'unit_metrics'>('duty');
   const [expandedHsn, setExpandedHsn] = useState<string | null>(null);
@@ -308,15 +310,24 @@ export const RightCalculationReportSidebar: React.FC<RightCalculationReportSideb
             </div>
 
             {/* Total Financial Summary Box */}
-            <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-3">
+            <div
+              onClick={() => shipment && onOpenTraceability && onOpenTraceability('SHIPMENT', shipment.id)}
+              className={`bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-3 transition-all ${
+                onOpenTraceability ? 'hover:border-indigo-500/50 cursor-pointer group' : ''
+              }`}
+              title={onOpenTraceability ? 'Click to open dynamic Traceability Graph for this shipment' : undefined}
+            >
               <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center justify-between border-b border-slate-800 pb-2">
                 <span className="flex items-center gap-1.5">
                   <Receipt className="w-3.5 h-3.5" />
                   Financial Summary Report
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {shipment?.currency || 'INR'} Currency
-                </span>
+                {onOpenTraceability && (
+                  <span className="text-[10px] text-indigo-300 font-semibold flex items-center gap-1 bg-indigo-950/80 border border-indigo-500/30 px-1.5 py-0.5 rounded-md group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <ArrowUpRight className="w-3 h-3" />
+                    Trace Graph
+                  </span>
+                )}
               </h4>
 
               <div className="space-y-2 text-xs">

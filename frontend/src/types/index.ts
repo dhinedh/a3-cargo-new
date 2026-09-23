@@ -402,3 +402,85 @@ export interface DashboardSummary {
   year_wise_summary: Record<string, any>;
 }
 
+export interface ShipmentMilestone {
+  id: number;
+  shipment_id: number;
+  milestone_code: string;
+  milestone_name: string;
+  sequence: number;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'SKIPPED' | 'CANCELLED';
+  workflow_mode?: string;
+  planned_date?: string;
+  due_date?: string;
+  actual_date?: string;
+  delay_days: number;
+  delay_reason?: string;
+  owner_person?: string;
+  remarks?: string;
+  source_entity_type?: string;
+  source_entity_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TraceabilityNode {
+  relationship?: string;
+  entity_type: string;
+  entity_id: number;
+  label: string;
+  ref_number?: string;
+  amount?: number;
+  currency?: string;
+  status?: string;
+  date?: string;
+  metadata?: Record<string, any>;
+  children?: TraceabilityGroup[];
+}
+
+export interface TraceabilityGroup {
+  group: string;
+  items: TraceabilityNode[];
+}
+
+export interface TraceabilityTreeResponse {
+  root: TraceabilityNode;
+  children: (TraceabilityGroup | TraceabilityNode)[];
+}
+
+export interface GlobalSearchEntity {
+  entity_type: string;
+  entity_id: number;
+  title: string;
+  subtitle: string;
+  badge: string;
+}
+
+export interface TrackingShipmentRow {
+  shipment_id: number;
+  shipment_no: string;
+  financial_year: string;
+  customer_names: string;
+  destination: string;
+  status: string;
+  current_stage: string;
+  progress_pct: number;
+  total_milestones: number;
+  completed_milestones: number;
+  is_delayed: boolean;
+  is_blocked: boolean;
+  created_at?: string;
+}
+
+export interface TrackingDashboardSummary {
+  kpis: {
+    total_shipments: number;
+    in_progress: number;
+    completed: number;
+    blocked: number;
+    delayed: number;
+    attention_required: number;
+  };
+  shipments: TrackingShipmentRow[];
+}
+
+

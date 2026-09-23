@@ -571,5 +571,39 @@ export const apiClient = {
     const res = await axios.post(`${API_BASE}/shipments/simulate-quotation`, payload);
     return res.data;
   },
+
+  // Traceability & Operational Tracking API Methods
+  getTraceabilityTree: async (entityType: string, entityId: number): Promise<TraceabilityTreeResponse> => {
+    const res = await axios.get(`${API_BASE}/traceability/${entityType}/${entityId}`);
+    return res.data;
+  },
+
+  searchTraceabilityEntities: async (query: string): Promise<GlobalSearchEntity[]> => {
+    const res = await axios.get(`${API_BASE}/traceability/search`, { params: { q: query } });
+    return res.data;
+  },
+
+  getTrackingDashboard: async (): Promise<TrackingDashboardSummary> => {
+    const res = await axios.get(`${API_BASE}/tracking/dashboard`);
+    return res.data;
+  },
+
+  getShipmentMilestones: async (shipmentId: number): Promise<ShipmentMilestone[]> => {
+    const res = await axios.get(`${API_BASE}/shipments/${shipmentId}/milestones`);
+    return res.data;
+  },
+
+  initShipmentMilestones: async (shipmentId: number, workflowMode: string = "SEA_FCL"): Promise<ShipmentMilestone[]> => {
+    const res = await axios.post(`${API_BASE}/shipments/${shipmentId}/milestones/init`, null, {
+      params: { workflow_mode: workflowMode }
+    });
+    return res.data;
+  },
+
+  updateShipmentMilestone: async (shipmentId: number, milestoneId: number, payload: any): Promise<ShipmentMilestone> => {
+    const res = await axios.put(`${API_BASE}/shipments/${shipmentId}/milestones/${milestoneId}`, payload);
+    return res.data;
+  },
 };
+
 
