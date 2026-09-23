@@ -258,7 +258,6 @@ def restore_shipments_from_mongo(db_session=None):
         if not cloud_shipments:
             return
 
-        max_seq = 0
         shipments_to_re_sync = []
         for doc in cloud_shipments:
             s_id = doc.get("id")
@@ -266,13 +265,6 @@ def restore_shipments_from_mongo(db_session=None):
                 continue
             
             seq_num = doc.get("sequence_number", 1)
-            if seq_num > max_seq:
-                max_seq = seq_num
-
-        local_max = sql_db.query(func.max(models.Shipment.sequence_number)).scalar() or 0
-        if local_max > max_seq:
-            max_seq = local_max
-
             sh = sql_db.query(models.Shipment).filter(models.Shipment.id == s_id).first()
             if not sh:
                 sh = models.Shipment(
@@ -358,7 +350,6 @@ def restore_shipments_from_mongo(db_session=None):
                     ).first()
 
                 if not req:
-                    # Check if r_id conflicts with another shipment's requirement
                     id_to_use = r_id if (r_id and not sql_db.query(models.ShipmentCustomerRequirement).filter(models.ShipmentCustomerRequirement.id == r_id).first()) else None
                     req = models.ShipmentCustomerRequirement(
                         id=id_to_use,
@@ -559,6 +550,18 @@ def restore_shipments_from_mongo(db_session=None):
 
             shipments_to_re_sync.append(sh.id)
 
+        # Update sequence tracking records for each financial year
+        for fy_tuple in sql_db.query(models.Shipment.financial_year).distinct().all():
+            if fy_tuple and fy_tuple[0]:
+                fy_str = fy_tuple[0]
+                max_seq_for_fy = sql_db.query(func.max(models.Shipment.sequence_number)).filter(models.Shipment.financial_year == fy_str).scalar() or 0
+                seq_rec = sql_db.query(models.ShipmentSequence).filter(models.ShipmentSequence.financial_year == fy_str).first()
+                if not seq_rec:
+                    seq_rec = models.ShipmentSequence(financial_year=fy_str, last_sequence=max_seq_for_fy)
+                    sql_db.add(seq_rec)
+                elif max_seq_for_fy > seq_rec.last_sequence:
+                    seq_rec.last_sequence = max_seq_for_fy
+
         sql_db.commit()
 
         # Re-sync combined state back to Mongo to merge local SQLite & Mongo Atlas
@@ -567,18 +570,6 @@ def restore_shipments_from_mongo(db_session=None):
                 sync_shipment_to_mongo(s_id)
             except Exception as sync_err:
                 logger.error(f"Error re-syncing shipment #{s_id} back to Mongo: {sync_err}")
-
-        # Update sequence counter
-        if max_seq > 0:
-            for fy in ["2026-27", "2025-26"]:
-                seq_rec = sql_db.query(models.ShipmentSequence).filter(models.ShipmentSequence.financial_year == fy).first()
-                if seq_rec:
-                    if seq_rec.last_sequence < max_seq:
-                        seq_rec.last_sequence = max_seq
-                else:
-                    seq_rec = models.ShipmentSequence(financial_year=fy, last_sequence=max_seq)
-                    sql_db.add(seq_rec)
-            sql_db.commit()
 
     except Exception as e:
         sql_db.rollback()
