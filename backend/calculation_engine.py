@@ -6,29 +6,70 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from models import Shipment, ShipmentProduct, TariffLine
 
+def parse_tariff_rate_val(rate_str: str, base_val_lkr: float, weight_kg: float) -> float:
+    """
+    Parses Sri Lanka Customs tariff rate strings into actual duty amount in LKR per unit.
+    Handles percentage rates ('20%'), exemptions ('Ex', 'Free'), specific duties ('Rs. 50/kg'),
+    and composite rates ('15% or Rs. 100/kg', '10% + Rs. 20/kg').
+    """
+    if not rate_str:
+        return 0.0
+    clean = str(rate_str).strip().upper()
+    if clean in ["FREE", "NIL", "-", "EX", "EXEMPT", "NONE", "0%", "0"]:
+        return 0.0
+
+    # Composite "OR" pattern (e.g., "15% OR RS. 100/KG", "30% OR RS. 150/KG")
+    if " OR " in clean:
+        parts = clean.split(" OR ")
+        val1 = parse_tariff_rate_val(parts[0], base_val_lkr, weight_kg)
+        val2 = parse_tariff_rate_val(parts[1], base_val_lkr, weight_kg)
+        return max(val1, val2)
+
+    # Composite "+" pattern (e.g., "10% + RS. 20/KG")
+    if " + " in clean or " +" in clean or "+ " in clean:
+        parts = re.split(r"\s*\+\s*", clean)
+        return sum(parse_tariff_rate_val(p, base_val_lkr, weight_kg) for p in parts)
+
+    # Specific rate per KG (e.g. "RS. 300/KG", "50/KG", "RS. 100 PER KG")
+    match_kg = re.search(r"(?:RS\.?|LKR)?\s*(\d+(?:\.\d+)?)\s*(?:/|PER)\s*KG", clean)
+    if match_kg:
+        rate_per_kg = float(match_kg.group(1))
+        return rate_per_kg * max(weight_kg, 0.0)
+
+    # Standard Percentage rate (e.g. "20%", "20.0%", "18.0%")
+    match_pct = re.search(r"(\d+(?:\.\d+)?)\s*%", clean)
+    if match_pct:
+        pct = float(match_pct.group(1))
+        return base_val_lkr * (pct / 100.0)
+
+    # Direct numeric fallback
+    try:
+        val = float(clean)
+        if val <= 100:
+            return base_val_lkr * (val / 100.0)
+        else:
+            return val
+    except ValueError:
+        return 0.0
+
+
 def parse_percentage_rate(rate_str: str, base_value: Decimal) -> Decimal:
     """
-    Parses rates like '15%', 'Free', 'Rs. 50/kg', '10% + Rs 20' into an estimated percentage value.
-    If 'Free' or None, returns 0.
+    Parses rates like '15%', 'Free', 'Rs. 50/kg' into an estimated percentage value for backwards compatibility.
     """
     if not rate_str:
         return Decimal("0.0")
-    
-    clean_str = rate_str.strip().upper()
-    if clean_str == "FREE" or clean_str == "NIL" or clean_str == "-":
+    clean = str(rate_str).strip().upper()
+    if clean in ["FREE", "NIL", "-", "EX", "EXEMPT", "NONE", "0%", "0"]:
         return Decimal("0.0")
-    
-    # Try matching standard percentage pattern like "15%" or "7.5%"
-    match = re.search(r"(\d+(?:\.\d+)?)\s*%", clean_str)
+    match = re.search(r"(\d+(?:\.\d+)?)\s*%", clean)
     if match:
         try:
             return Decimal(match.group(1))
         except Exception:
             pass
-
-    # If it's a numeric string directly
     try:
-        return Decimal(clean_str)
+        return Decimal(clean)
     except Exception:
         return Decimal("0.0")
 
@@ -36,7 +77,8 @@ def parse_percentage_rate(rate_str: str, base_value: Decimal) -> Decimal:
 def recalculate_shipment(db: Session, shipment: Shipment):
     """
     Recalculates all pricing, duty, freight allocations, suggested prices, discounts,
-    shortages, net settlements, and predicted profits for every product in the shipment.
+    shortages, net settlements, and predicted profits for every product in the shipment
+    using official Sri Lanka Customs tax valuation & compounding formulas.
     """
     products = shipment.products
     if not products:
@@ -64,7 +106,7 @@ def recalculate_shipment(db: Session, shipment: Shipment):
         q = float(p.quantity or 1.0)
         w = float(p.net_weight_kg or p.weight_val or 0.0)
         # If weight unit is Grams, convert to KG
-        if getattr(p, "weight_unit", "KG") and p.weight_unit.upper() in ["G", "GRAM", "GRAMS"]:
+        if getattr(p, "weight_unit", "KG") and str(p.weight_unit).upper() in ["G", "GRAM", "GRAMS"]:
             w = w / 1000.0
         product_weights.append(w * q if w > 0 else q)
 
@@ -75,6 +117,7 @@ def recalculate_shipment(db: Session, shipment: Shipment):
         p_price = float(p.purchase_price or 0.0)
         qty = float(p.quantity or 1.0)
         item_weight_total = product_weights[idx]
+        unit_weight_kg = (item_weight_total / qty) if qty > 0 else 0.0
 
         if curr == "LKR":
             base_price_lkr = p_price
@@ -112,7 +155,13 @@ def recalculate_shipment(db: Session, shipment: Shipment):
             ).first()
 
             # If no exact match or matched line has no rates (category heading), find first leaf line with rates
-            if not tariff_line or (not tariff_line.general_duty_rate and not tariff_line.vat_rate and not tariff_line.pal_rate and not tariff_line.cess_rate):
+            if not tariff_line or (
+                not tariff_line.general_duty_rate and 
+                not tariff_line.vat_rate and 
+                not tariff_line.pal_rate and 
+                not tariff_line.cess_rate and 
+                not tariff_line.scl_rate
+            ):
                 fallback = db.query(TariffLine).filter(
                     or_(
                         TariffLine.hs_code.like(f"{raw_hsn}%"),
@@ -122,7 +171,8 @@ def recalculate_shipment(db: Session, shipment: Shipment):
                         TariffLine.general_duty_rate.isnot(None),
                         TariffLine.vat_rate.isnot(None),
                         TariffLine.pal_rate.isnot(None),
-                        TariffLine.cess_rate.isnot(None)
+                        TariffLine.cess_rate.isnot(None),
+                        TariffLine.scl_rate.isnot(None)
                     )
                 ).first()
                 if fallback:
@@ -131,12 +181,6 @@ def recalculate_shipment(db: Session, shipment: Shipment):
                     if fallback.hs_code:
                         p.hsn_code = fallback.hs_code
 
-        gen_duty_pct = 0.0
-        vat_pct = 0.0
-        pal_pct = 0.0
-        cess_pct = 0.0
-        sscl_pct = 0.0
-
         if tariff_line:
             p.general_duty_rate = tariff_line.general_duty_rate
             p.vat_rate = tariff_line.vat_rate
@@ -144,28 +188,43 @@ def recalculate_shipment(db: Session, shipment: Shipment):
             p.cess_rate = tariff_line.cess_rate
             p.sscl_rate = tariff_line.sscl_rate
 
-            gen_duty_pct = float(parse_percentage_rate(tariff_line.general_duty_rate, Decimal(base_price_lkr)))
-            vat_pct = float(parse_percentage_rate(tariff_line.vat_rate, Decimal(base_price_lkr)))
-            pal_pct = float(parse_percentage_rate(tariff_line.pal_rate, Decimal(base_price_lkr)))
-            cess_pct = float(parse_percentage_rate(tariff_line.cess_rate, Decimal(base_price_lkr)))
-            sscl_pct = float(parse_percentage_rate(tariff_line.sscl_rate, Decimal(base_price_lkr)))
-
-        # Check SCL / Licensed priority classification
-        is_scl = (getattr(p, "item_classification", "NORMAL") == "SCL") or (tariff_line and tariff_line.scl_rate) or ("ghee" in p.product_name.lower())
+        # Official Sri Lanka Customs Duty Calculation
+        is_scl = (getattr(p, "item_classification", "NORMAL") == "SCL") or bool(tariff_line and tariff_line.scl_rate) or ("ghee" in p.product_name.lower())
         if is_scl:
             p.item_classification = "SCL"
 
-        # Duty calculation with SCL priority
         if is_scl and tariff_line and tariff_line.scl_rate:
-            scl_val = float(parse_percentage_rate(tariff_line.scl_rate, Decimal(base_price_lkr)))
-            if scl_val > 0:
-                calculated_duty_lkr = base_price_lkr * (scl_val / 100.0)
+            scl_duty_amount = parse_tariff_rate_val(tariff_line.scl_rate, base_price_lkr, unit_weight_kg)
+            if scl_duty_amount > 0:
+                calculated_duty_lkr = scl_duty_amount
             else:
-                duty_pct_total = gen_duty_pct + vat_pct + pal_pct + cess_pct + sscl_pct
-                calculated_duty_lkr = base_price_lkr * (duty_pct_total / 100.0)
+                # Fallback if SCL parse yields 0
+                cid_amt = parse_tariff_rate_val(tariff_line.general_duty_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+                pal_amt = parse_tariff_rate_val(tariff_line.pal_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+                cess_amt = parse_tariff_rate_val(tariff_line.cess_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+                excise_amt = parse_tariff_rate_val(tariff_line.excise_rate if tariff_line else None, base_price_lkr + cid_amt + pal_amt + cess_amt, unit_weight_kg)
+                sscl_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt) * 1.10
+                sscl_amt = parse_tariff_rate_val(tariff_line.sscl_rate if tariff_line else "2.5%", sscl_base, unit_weight_kg)
+                vat_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt) * 1.10
+                vat_amt = parse_tariff_rate_val(tariff_line.vat_rate if tariff_line else "18.0%", vat_base, unit_weight_kg)
+                calculated_duty_lkr = cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt + vat_amt
         else:
-            duty_pct_total = gen_duty_pct + vat_pct + pal_pct + cess_pct + sscl_pct
-            calculated_duty_lkr = base_price_lkr * (duty_pct_total / 100.0)
+            cid_amt = parse_tariff_rate_val(tariff_line.general_duty_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+            pal_amt = parse_tariff_rate_val(tariff_line.pal_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+            cess_amt = parse_tariff_rate_val(tariff_line.cess_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+            excise_amt = parse_tariff_rate_val(tariff_line.excise_rate if tariff_line else None, base_price_lkr + cid_amt + pal_amt + cess_amt, unit_weight_kg)
+            
+            # SSCL (2.5% on 110% of assessable value + duties)
+            sscl_rate_str = tariff_line.sscl_rate if (tariff_line and tariff_line.sscl_rate) else "2.5%"
+            sscl_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt) * 1.10
+            sscl_amt = parse_tariff_rate_val(sscl_rate_str, sscl_base, unit_weight_kg)
+
+            # VAT (18.0% on 110% of CIF + duties + SSCL)
+            vat_rate_str = tariff_line.vat_rate if (tariff_line and tariff_line.vat_rate) else "18.0%"
+            vat_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt) * 1.10
+            vat_amt = parse_tariff_rate_val(vat_rate_str, vat_base, unit_weight_kg)
+
+            calculated_duty_lkr = cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt + vat_amt
 
         # C&F Price (Purchase price + allocated freight per unit)
         cnf_price_lkr = base_price_lkr + per_unit_freight_lkr
@@ -173,7 +232,7 @@ def recalculate_shipment(db: Session, shipment: Shipment):
         # Total Cost LKR per unit (C&F + Duty + Port)
         total_cost_lkr = cnf_price_lkr + calculated_duty_lkr + per_unit_port_lkr
 
-        # Configurable Margin Rule Formula (Requirement 13)
+        # Configurable Margin Rule Formula
         margin_mode = getattr(shipment, "margin_mode", "MARGIN_ON_REVENUE") or "MARGIN_ON_REVENUE"
         margin_decimal = target_margin_pct / 100.0
 
@@ -190,7 +249,7 @@ def recalculate_shipment(db: Session, shipment: Shipment):
             final_price_lkr = suggested_price_lkr
             p.final_quotation_price = Decimal(str(round(final_price_lkr, 2)))
 
-        # Customer Quotation calculations (P_1 / P_2 fields)
+        # Customer Quotation calculations
         discount_lkr = float(p.discount_lkr or 0.0)
         set_price_lkr = final_price_lkr - discount_lkr
         p.set_price_lkr = Decimal(str(round(set_price_lkr, 2)))
@@ -229,3 +288,4 @@ def recalculate_shipment(db: Session, shipment: Shipment):
         sync_shipment_to_mongo(shipment.id)
     except Exception as e:
         print(f"Auto mongo sync notice from recalculate_shipment: {e}")
+

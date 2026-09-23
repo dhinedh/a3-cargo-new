@@ -1771,18 +1771,36 @@ def simulate_quotation(payload: schemas.QuotationSimulationRequest, db: Session 
     per_unit_port_lkr = total_port_lkr / qty if qty > 0 else 0.0
 
     # 4. Duty Calculations from Tariff Line
-    gen_duty_pct = float(parse_percentage_rate(tariff_line.general_duty_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
-    vat_pct = float(parse_percentage_rate(tariff_line.vat_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
-    pal_pct = float(parse_percentage_rate(tariff_line.pal_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
-    cess_pct = float(parse_percentage_rate(tariff_line.cess_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
-    sscl_pct = float(parse_percentage_rate(tariff_line.sscl_rate, Decimal(str(base_price_lkr)))) if tariff_line else 0.0
-    scl_val = float(parse_percentage_rate(tariff_line.scl_rate, Decimal(str(base_price_lkr)))) if (tariff_line and tariff_line.scl_rate) else 0.0
+    from calculation_engine import parse_tariff_rate_val
+    unit_weight_kg = (net_wt_kg / qty) if qty > 0 else 0.0
 
-    if scl_val > 0:
-        per_unit_duty_lkr = base_price_lkr * (scl_val / 100.0)
+    is_scl = (getattr(payload, "item_classification", "NORMAL") == "SCL") or bool(tariff_line and tariff_line.scl_rate) or ("ghee" in p_name.lower())
+    if is_scl and tariff_line and tariff_line.scl_rate:
+        scl_duty_amount = parse_tariff_rate_val(tariff_line.scl_rate, base_price_lkr, unit_weight_kg)
+        if scl_duty_amount > 0:
+            per_unit_duty_lkr = scl_duty_amount
+        else:
+            cid_amt = parse_tariff_rate_val(tariff_line.general_duty_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+            pal_amt = parse_tariff_rate_val(tariff_line.pal_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+            cess_amt = parse_tariff_rate_val(tariff_line.cess_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+            excise_amt = parse_tariff_rate_val(tariff_line.excise_rate if tariff_line else None, base_price_lkr + cid_amt + pal_amt + cess_amt, unit_weight_kg)
+            sscl_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt) * 1.10
+            sscl_amt = parse_tariff_rate_val(tariff_line.sscl_rate if tariff_line else "2.5%", sscl_base, unit_weight_kg)
+            vat_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt) * 1.10
+            vat_amt = parse_tariff_rate_val(tariff_line.vat_rate if tariff_line else "18.0%", vat_base, unit_weight_kg)
+            per_unit_duty_lkr = cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt + vat_amt
     else:
-        total_duty_pct = gen_duty_pct + vat_pct + pal_pct + cess_pct + sscl_pct
-        per_unit_duty_lkr = base_price_lkr * (total_duty_pct / 100.0)
+        cid_amt = parse_tariff_rate_val(tariff_line.general_duty_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+        pal_amt = parse_tariff_rate_val(tariff_line.pal_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+        cess_amt = parse_tariff_rate_val(tariff_line.cess_rate if tariff_line else None, base_price_lkr, unit_weight_kg)
+        excise_amt = parse_tariff_rate_val(tariff_line.excise_rate if tariff_line else None, base_price_lkr + cid_amt + pal_amt + cess_amt, unit_weight_kg)
+        sscl_rate_str = tariff_line.sscl_rate if (tariff_line and tariff_line.sscl_rate) else "2.5%"
+        sscl_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt) * 1.10
+        sscl_amt = parse_tariff_rate_val(sscl_rate_str, sscl_base, unit_weight_kg)
+        vat_rate_str = tariff_line.vat_rate if (tariff_line and tariff_line.vat_rate) else "18.0%"
+        vat_base = (base_price_lkr + cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt) * 1.10
+        vat_amt = parse_tariff_rate_val(vat_rate_str, vat_base, unit_weight_kg)
+        per_unit_duty_lkr = cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt + vat_amt
 
     total_duty_lkr = per_unit_duty_lkr * qty
 
