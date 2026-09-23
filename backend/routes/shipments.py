@@ -57,11 +57,12 @@ def get_next_shipment_number(financial_year: Optional[str] = None, db: Session =
 @router.get("", response_model=List[ShipmentResponse])
 def get_shipments(db: Session = Depends(get_db)):
     try:
-        from mongo_sync import restore_shipments_from_mongo
+        from mongo_sync import sync_all_shipments_to_mongo, restore_shipments_from_mongo
+        sync_all_shipments_to_mongo(db)
         restore_shipments_from_mongo(db)
         db.expire_all()
     except Exception as e:
-        print(f"Auto-restore from Mongo error: {e}")
+        print(f"Auto-sync/restore from Mongo error: {e}")
     
     shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
 
@@ -190,11 +191,12 @@ def resolve_customer_ids(
 @router.post("", response_model=ShipmentResponse)
 def create_shipment(payload: ShipmentCreate, db: Session = Depends(get_db)):
     try:
-        from mongo_sync import restore_shipments_from_mongo
+        from mongo_sync import sync_all_shipments_to_mongo, restore_shipments_from_mongo
+        sync_all_shipments_to_mongo(db)
         restore_shipments_from_mongo(db)
         db.expire_all()
     except Exception as e:
-        print(f"Pre-creation restore notice: {e}")
+        print(f"Pre-creation sync/restore notice: {e}")
 
     fy = payload.financial_year or get_current_financial_year()
     

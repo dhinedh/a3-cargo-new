@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 # pyrefly: ignore [missing-import]
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from database import get_mongo_db, SessionLocal
 import models
@@ -267,6 +268,10 @@ def restore_shipments_from_mongo(db_session=None):
             seq_num = doc.get("sequence_number", 1)
             if seq_num > max_seq:
                 max_seq = seq_num
+
+        local_max = sql_db.query(func.max(models.Shipment.sequence_number)).scalar() or 0
+        if local_max > max_seq:
+            max_seq = local_max
 
             sh = sql_db.query(models.Shipment).filter(models.Shipment.id == s_id).first()
             if not sh:

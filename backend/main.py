@@ -18,8 +18,9 @@ except Exception as e:
 
 Base.metadata.create_all(bind=engine)
 
-# Auto-restore catalog & shipments from MongoDB Atlas cloud if container or DB restarted
+# Auto-sync local shipments & restore catalog/shipments from MongoDB Atlas cloud
 try:
+    sync_all_shipments_to_mongo()
     restore_catalog_from_mongo()
     restore_shipments_from_mongo()
 except Exception as e:
@@ -36,8 +37,8 @@ async def periodic_bg_mongo_sync():
     while True:
         try:
             await asyncio.sleep(60)
-            restore_shipments_from_mongo()
             sync_all_shipments_to_mongo()
+            restore_shipments_from_mongo()
         except Exception as e:
             print(f"Periodic bg mongo sync notice: {e}")
 
