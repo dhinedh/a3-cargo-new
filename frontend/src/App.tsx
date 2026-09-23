@@ -399,6 +399,7 @@ export function App() {
               )}
             </div>
           </div>
+        )}
       </main>
 
       {/* Global Traceability Drawer */}
