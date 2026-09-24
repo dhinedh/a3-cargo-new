@@ -72,7 +72,8 @@ def trigger_restore_sync(db: Session = Depends(get_db)):
             "shipments": [{"id": s.id, "no": s.shipment_no, "status": s.status} for s in shipments]
         }
     except Exception as e:
-        return {"status": "ERROR", "message": str(e)}
+        import traceback
+        return {"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()}
 
 @router.get("", response_model=List[ShipmentResponse])
 def get_shipments(db: Session = Depends(get_db)):
