@@ -57,6 +57,13 @@ def get_next_shipment_number(financial_year: Optional[str] = None, db: Session =
 @router.get("", response_model=List[ShipmentResponse])
 def get_shipments(db: Session = Depends(get_db)):
     shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
+    if not shipments:
+        try:
+            from mongo_sync import restore_shipments_from_mongo
+            restore_shipments_from_mongo(db)
+            shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
+        except Exception as err:
+            print(f"Auto-restore shipments on GET failed: {err}")
 
     res = []
     for s in shipments:

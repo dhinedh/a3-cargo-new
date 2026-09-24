@@ -18,11 +18,11 @@ except Exception as e:
 
 Base.metadata.create_all(bind=engine)
 
-# Auto-sync local shipments & restore catalog/shipments from MongoDB Atlas cloud
+# Auto-restore catalog & shipments from MongoDB Atlas cloud, then sync local changes
 try:
-    sync_all_shipments_to_mongo()
     restore_catalog_from_mongo()
     restore_shipments_from_mongo()
+    sync_all_shipments_to_mongo()
 except Exception as e:
     print(f"Mongo restore notice: {e}")
 

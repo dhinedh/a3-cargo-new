@@ -14,7 +14,7 @@ except ImportError:
     _ca_file = None
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tariff.db")
-if DATABASE_URL in ("sqlite:///./tariff.db", "sqlite:////tariff.db"):
+if "sqlite" in DATABASE_URL and ("tariff.db" in DATABASE_URL or DATABASE_URL.endswith(".db")):
     db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tariff.db").replace("\\", "/")
     DATABASE_URL = f"sqlite:///{db_path}"
 
