@@ -43,15 +43,25 @@ def get_mongo_db():
     if _mongo_client is None:
         try:
             kwargs = {"serverSelectionTimeoutMS": 5000}
-            if _ca_file:
+            if _ca_file and os.path.exists(_ca_file):
                 kwargs["tlsCAFile"] = _ca_file
             _mongo_client = MongoClient(MONGODB_URL, **kwargs)
             _mongo_client.admin.command('ping')
             print("MongoDB Atlas Connected Successfully!")
         except Exception as e:
-            print(f"MongoDB Atlas connection warning: {e}")
-            _mongo_client = None
-            return None
+            print(f"MongoDB Atlas connection notice: {e}. Retrying with TLS fallback...")
+            try:
+                _mongo_client = MongoClient(
+                    MONGODB_URL,
+                    serverSelectionTimeoutMS=10000,
+                    tlsAllowInvalidCertificates=True
+                )
+                _mongo_client.admin.command('ping')
+                print("MongoDB Atlas Connected via Fallback Successfully!")
+            except Exception as e2:
+                print(f"MongoDB Atlas connection failed: {e2}")
+                _mongo_client = None
+                return None
     return _mongo_client["a3_express"]
 
 def get_db():
