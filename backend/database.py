@@ -38,6 +38,7 @@ MONGODB_URL = os.getenv(
     "mongodb+srv://thenna44ck_db_user:2dWQ2jrV762IvKs6@cluster0.phdzsgq.mongodb.net/a3_express?retryWrites=true&w=majority&appName=Cluster0"
 )
 
+_mongo_client = None
 _mongo_error = None
 
 def get_mongo_db():
