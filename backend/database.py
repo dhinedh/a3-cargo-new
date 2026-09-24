@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
+    # pyrefly: ignore [missing-import]
     from pymongo import MongoClient
+    # pyrefly: ignore [missing-import]
     import certifi
     _ca_file = certifi.where()
 except ImportError:

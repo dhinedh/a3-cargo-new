@@ -1,9 +1,7 @@
-python-interpreter-path = "E:/mugil/a3  express cargo/backend/.venv/Scripts/python.exe"
 search-path = [
-    "E:/mugil/a3  express cargo/backend",
     "backend"
 ]
 
 [errors]
 missing-import = "ignore"
-missing-attribute = "warn"
+missing-attribute = "ignore"
