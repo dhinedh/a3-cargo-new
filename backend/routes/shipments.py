@@ -56,10 +56,10 @@ def get_next_shipment_number(financial_year: Optional[str] = None, db: Session =
 
 @router.post("/restore-sync")
 def trigger_restore_sync(db: Session = Depends(get_db)):
-    from database import get_mongo_db
+    from database import get_mongo_db, _mongo_error
     mongo_db = get_mongo_db()
     if mongo_db is None:
-        return {"status": "ERROR", "message": "get_mongo_db() returned None. Check MongoDB Atlas connection."}
+        return {"status": "ERROR", "message": f"get_mongo_db() returned None. Detail: {_mongo_error}"}
     
     from mongo_sync import restore_shipments_from_mongo, sync_all_shipments_to_mongo
     try:

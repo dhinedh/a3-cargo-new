@@ -34,13 +34,15 @@ MONGODB_URL = os.getenv(
     "mongodb+srv://thenna44ck_db_user:2dWQ2jrV762IvKs6@cluster0.phdzsgq.mongodb.net/a3_express?retryWrites=true&w=majority&appName=Cluster0"
 )
 
-_mongo_client = None
+_mongo_error = None
 
 def get_mongo_db():
-    global _mongo_client
+    global _mongo_client, _mongo_error
     if MongoClient is None:
+        _mongo_error = "MongoClient is None (pymongo import failed)"
         return None
     if _mongo_client is None:
+        err_messages = []
         try:
             kwargs = {"serverSelectionTimeoutMS": 5000}
             if _ca_file and os.path.exists(_ca_file):
@@ -49,7 +51,7 @@ def get_mongo_db():
             _mongo_client.admin.command('ping')
             print("MongoDB Atlas Connected Successfully!")
         except Exception as e:
-            print(f"MongoDB Atlas connection notice: {e}. Retrying with TLS fallback...")
+            err_messages.append(f"Primary error [{type(e).__name__}]: {e}")
             try:
                 _mongo_client = MongoClient(
                     MONGODB_URL,
@@ -59,8 +61,9 @@ def get_mongo_db():
                 _mongo_client.admin.command('ping')
                 print("MongoDB Atlas Connected via Fallback Successfully!")
             except Exception as e2:
-                print(f"MongoDB Atlas connection failed: {e2}")
+                err_messages.append(f"Fallback error [{type(e2).__name__}]: {e2}")
                 _mongo_client = None
+                _mongo_error = "; ".join(err_messages)
                 return None
     return _mongo_client["a3_express"]
 
