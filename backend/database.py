@@ -8,11 +8,15 @@ load_dotenv()
 try:
     # pyrefly: ignore [missing-import]
     from pymongo import MongoClient
+except Exception as _pe:
+    MongoClient = None
+    print(f"pymongo import notice: {_pe}")
+
+try:
     # pyrefly: ignore [missing-import]
     import certifi
     _ca_file = certifi.where()
-except ImportError:
-    MongoClient = None
+except Exception as _ce:
     _ca_file = None
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tariff.db")
