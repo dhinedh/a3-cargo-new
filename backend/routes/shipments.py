@@ -54,6 +54,26 @@ def get_next_shipment_number(financial_year: Optional[str] = None, db: Session =
     }
 
 
+@router.post("/restore-sync")
+def trigger_restore_sync(db: Session = Depends(get_db)):
+    from database import get_mongo_db
+    mongo_db = get_mongo_db()
+    if mongo_db is None:
+        return {"status": "ERROR", "message": "get_mongo_db() returned None. Check MongoDB Atlas connection."}
+    
+    from mongo_sync import restore_shipments_from_mongo, sync_all_shipments_to_mongo
+    try:
+        restore_shipments_from_mongo(db)
+        sync_all_shipments_to_mongo(db)
+        shipments = db.query(Shipment).all()
+        return {
+            "status": "SUCCESS",
+            "count": len(shipments),
+            "shipments": [{"id": s.id, "no": s.shipment_no, "status": s.status} for s in shipments]
+        }
+    except Exception as e:
+        return {"status": "ERROR", "message": str(e)}
+
 @router.get("", response_model=List[ShipmentResponse])
 def get_shipments(db: Session = Depends(get_db)):
     shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
@@ -63,6 +83,7 @@ def get_shipments(db: Session = Depends(get_db)):
             restore_shipments_from_mongo(db)
             shipments = db.query(Shipment).order_by(Shipment.id.desc()).all()
         except Exception as err:
+            print(f"Auto-restore shipments on GET failed: {err}")
             print(f"Auto-restore shipments on GET failed: {err}")
 
     res = []
