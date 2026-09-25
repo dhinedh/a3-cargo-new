@@ -733,7 +733,7 @@ async def upload_excel_products(shipment_id: int, file: UploadFile = File(...), 
     rows_added = 0
 
     for idx, row in df.iterrows():
-        p_name = str(row.get("product_name") or row.get("product") or row.get("description") or f"Item {int(idx)+1}").strip()
+        p_name = str(row.get("product_name") or row.get("product") or row.get("description") or f"Item {int(str(idx))+1}").strip()
         if not p_name or p_name == "nan":
             continue
 

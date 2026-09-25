@@ -527,21 +527,11 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
     }
   };
 
-  // Download Sample Vendor PI Excel / CSV Template
+  // Download Vendor PI Excel Template Pre-filled from Shipment
   const downloadSampleVendorPiExcel = () => {
-    const csvHeader = "Vendor Code,Product Name,Quantity,Cartons,Units Per Carton,Unit Weight,Net Weight,Gross Weight,Proforma Price,Currency,Notes\n";
-    const sampleRows = [
-      "VEND-001,Ragi Grain (Vendor A),120,10,12,0.5,60.0,63.0,45.00,INR,Vendor A packing configuration (12 units per carton)",
-      "VEND-002,Maida Flour (Vendor B),240,10,24,1.0,240.0,252.0,50.00,INR,Vendor B packing configuration (24 units per carton)",
-      "VEND-003,Atta Flour (Vendor C),50,10,5,2.0,100.0,105.0,110.00,INR,Vendor C packing configuration (5 units per carton)",
-      "VEND-004,White Sugar (Vendor D - 30kg Bag),300,10,1,30.0,300.0,305.0,1500.00,INR,Vendor D packing configuration (30 kg bag)"
-    ].join("\n");
-
-    const blob = new Blob([csvHeader + sampleRows], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const templateUrl = apiClient.getVendorProformaTemplateUrl(shipmentId);
     const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'A3_Vendor_Proforma_Invoice_Template.csv');
+    link.href = templateUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1297,10 +1287,10 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                 type="button"
                 onClick={downloadSampleVendorPiExcel}
                 className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center gap-1.5"
-                title="Download sample Excel template"
+                title="Download Excel template pre-filled with shipment items and vendor allocations. Just update Quantity and Price!"
               >
                 <Download className="w-4 h-4 text-slate-600" />
-                <span>Sample Excel Template</span>
+                <span>Download PI Template (Pre-filled)</span>
               </button>
 
               <label className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5">
@@ -1388,7 +1378,7 @@ export const VendorAllocationStep: React.FC<VendorAllocationStepProps> = ({
                     onClick={downloadSampleVendorPiExcel}
                     className="px-3.5 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 cursor-pointer"
                   >
-                    Download Sample Excel Template
+                    Download Pre-filled Excel Template
                   </button>
                   <button
                     type="button"

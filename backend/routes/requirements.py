@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any
 from decimal import Decimal
 from pydantic import BaseModel
 import io
@@ -11,7 +11,7 @@ import difflib
 import pandas as pd
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from database import get_db
 import models
@@ -644,7 +644,7 @@ def export_customer_requirements_pdf(shipment_id: int, db: Session = Depends(get
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=16, leading=20, textColor=colors.HexColor("#1e293b"))
@@ -652,17 +652,17 @@ def export_customer_requirements_pdf(shipment_id: int, db: Session = Depends(get
     story.append(Paragraph(f"Shipment #: {s.shipment_no} | Date: {s.shipment_date or 'N/A'}", styles['Normal']))
     story.append(Spacer(1, 14))
 
-    table_data = [["S.No", "Customer", "Product Name", "HSN Code", "Quantity", "Unit", "Notes"]]
+    table_data: List[List[Any]] = [["S.No", "Customer", "Product Name", "HSN Code", "Quantity", "Unit", "Notes"]]
     for idx, r in enumerate(reqs, 1):
         cust_name = r.customer.name if r.customer else f"Customer #{r.customer_id}"
         table_data.append([
             str(idx),
-            cust_name,
-            r.product_name,
-            r.hsn_code or "Auto-mapped",
+            str(cust_name),
+            str(r.product_name or ""),
+            str(r.hsn_code or "Auto-mapped"),
             f"{float(r.required_quantity):,}",
-            r.unit,
-            r.notes or "-"
+            str(r.unit or ""),
+            str(r.notes or "-")
         ])
 
     t = Table(table_data, colWidths=[30, 100, 140, 70, 60, 50, 80])

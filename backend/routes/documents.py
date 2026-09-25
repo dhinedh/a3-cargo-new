@@ -2,13 +2,14 @@ import io
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from typing import List, Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse, Response
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from database import get_db
@@ -68,7 +69,7 @@ def generate_customer_quotation(shipment_id: int, customer_id: int, db: Session 
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     build_pdf_header(story, f"CUSTOMER QUOTATION", f"Customer: {cust.name}", s.shipment_no, s.shipment_date or "")
 
@@ -144,11 +145,11 @@ def generate_indian_invoice(shipment_id: int, db: Session = Depends(get_db)):
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     build_pdf_header(story, "INDIAN COMMERCIAL INVOICE (INR)", "Export Manifest & Commercial Invoice", s.shipment_no, s.shipment_date or "")
 
-    table_data = [
+    table_data: List[List[Any]] = [
         ["#", "Customer", "Product Name", "HSN Code", "Qty", "Unit Price (INR)", "Total Value (INR)"]
     ]
 
@@ -164,9 +165,9 @@ def generate_indian_invoice(shipment_id: int, db: Session = Depends(get_db)):
 
         table_data.append([
             str(idx),
-            c_name[:15],
-            p.product_name,
-            p.hsn_code or "-",
+            str(c_name)[:15],
+            str(p.product_name or ""),
+            str(p.hsn_code or "-"),
             f"{q:g}",
             f"Rs. {inr_price:,.2f}",
             f"Rs. {total_inr:,.2f}"
@@ -204,12 +205,12 @@ def generate_colombo_invoice(shipment_id: int, db: Session = Depends(get_db)):
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     colombo_margin = float(s.colombo_invoice_margin_pct if s.colombo_invoice_margin_pct is not None else (s.profit_margin_pct or 15.0))
     build_pdf_header(story, "COLOMBO IMPORT INVOICE (LKR)", f"Sri Lanka Customs Import Entry Invoice • Margin Config: {colombo_margin:g}%", s.shipment_no, s.shipment_date or "")
 
-    table_data = [
+    table_data: List[List[Any]] = [
         ["#", "Product Name", "HSN Code", "Qty", "Base LKR", "Duty LKR", "Total Cost LKR", "Invoice LKR"]
     ]
 
@@ -234,8 +235,8 @@ def generate_colombo_invoice(shipment_id: int, db: Session = Depends(get_db)):
 
         table_data.append([
             str(idx),
-            p.product_name,
-            p.hsn_code or "-",
+            str(p.product_name or ""),
+            str(p.hsn_code or "-"),
             f"{q:g}",
             f"{base:,.2f}",
             f"{duty:,.2f}",
@@ -275,11 +276,11 @@ def generate_packing_list(shipment_id: int, db: Session = Depends(get_db)):
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     build_pdf_header(story, "SHIPMENT PACKING LIST", "Package & Weight Verification Details", s.shipment_no, s.shipment_date or "")
 
-    table_data = [
+    table_data: List[List[Any]] = [
         ["#", "Customer", "Product Name", "Quantity", "Weight", "Unit"]
     ]
 
@@ -296,11 +297,11 @@ def generate_packing_list(shipment_id: int, db: Session = Depends(get_db)):
 
         table_data.append([
             str(idx),
-            c_name[:20],
-            p.product_name,
+            str(c_name)[:20],
+            str(p.product_name or ""),
             f"{q:g}",
             f"{w:g} {p.weight_unit or 'KG'}",
-            p.unit or "PCS"
+            str(p.unit or "PCS")
         ])
 
     table_data.append(["", "", "TOTAL SHIPMENT WEIGHT:", f"{total_qty:g} Units", f"{total_weight:g} KG", ""])
@@ -335,11 +336,11 @@ def generate_duty_report(shipment_id: int, db: Session = Depends(get_db)):
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     build_pdf_header(story, "CUSTOMS DUTY BREAKDOWN REPORT", "Itemized Tariff Rates & Calculated Duty", s.shipment_no, s.shipment_date or "")
 
-    table_data = [
+    table_data: List[List[Any]] = [
         ["#", "Product", "HSN Code", "Gen Duty", "VAT", "PAL", "CESS", "SSCL", "Duty / Unit (LKR)"]
     ]
 
@@ -350,13 +351,13 @@ def generate_duty_report(shipment_id: int, db: Session = Depends(get_db)):
 
         table_data.append([
             str(idx),
-            p.product_name[:20],
-            p.hsn_code or "-",
-            p.general_duty_rate or "0%",
-            p.vat_rate or "0%",
-            p.pal_rate or "0%",
-            p.cess_rate or "0%",
-            p.sscl_rate or "0%",
+            str(p.product_name or "")[:20],
+            str(p.hsn_code or "-"),
+            str(p.general_duty_rate or "0%"),
+            str(p.vat_rate or "0%"),
+            str(p.pal_rate or "0%"),
+            str(p.cess_rate or "0%"),
+            str(p.sscl_rate or "0%"),
             f"{duty:,.2f}"
         ])
 
@@ -706,7 +707,7 @@ def generate_cmb_bank_excel(shipment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Shipment not found")
 
     wb = openpyxl.Workbook()
-    ws = wb.active
+    ws = wb.active or wb.create_sheet()
     ws.title = "INVOICE"
 
     c_name = s.customers[0].customer.name if (s.customers and s.customers[0].customer) else "NN BROTHER & HOLDINGS PVT LTD"
@@ -746,7 +747,7 @@ def generate_indian_excel(shipment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Shipment not found")
 
     wb = openpyxl.Workbook()
-    ws1 = wb.active
+    ws1 = wb.active or wb.create_sheet()
     ws1.title = "INVOICE"
 
     c_name = s.customers[0].customer.name if (s.customers and s.customers[0].customer) else "NN BROTHER & HOLDINGS PVT LTD"
@@ -787,17 +788,17 @@ def generate_coo_pdf(shipment_id: int, db: Session = Depends(get_db)):
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     build_pdf_header(story, "CERTIFICATE OF ORIGIN (COO)", "Trade Agreement Origin Declaration (ISFTA/SAFTA)", s.shipment_no, s.shipment_date or "")
 
-    table_data = [
+    table_data: List[List[Any]] = [
         ["HS Code (4-Digit)", "Description of Goods", "Net Qty", "UOM", "Gross Qty", "FOB Value (USD)"]
     ]
 
     total_fob = 0.0
     for p in s.products:
-        hsn_4 = (p.hsn_code or "")[:4] or "0000"
+        hsn_4 = str(p.hsn_code or "")[:4] or "0000"
         q = float(p.quantity or 1.0)
         net_w = float(p.net_weight_kg or p.weight_val or 0.0)
         rate_usd = round(float(p.purchase_price or 0.0) / float(s.usd_rate or 83.5), 2) if float(s.usd_rate or 83.5) > 0 else 1.0
@@ -806,9 +807,9 @@ def generate_coo_pdf(shipment_id: int, db: Session = Depends(get_db)):
 
         table_data.append([
             hsn_4,
-            p.product_name[:35],
+            str(p.product_name or "")[:35],
             f"{q:g}",
-            p.unit or "PCS",
+            str(p.unit or "PCS"),
             f"{net_w:g} KG" if net_w > 0 else f"{q:g} PCS",
             f"${fob_usd:,.2f}"
         ])
@@ -844,7 +845,7 @@ def generate_coo_excel(shipment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Shipment not found")
 
     wb = openpyxl.Workbook()
-    ws = wb.active
+    ws = wb.active or wb.create_sheet()
     ws.title = "COOTemplate"
     ws.views.sheetView[0].showGridLines = True
 
@@ -881,7 +882,7 @@ def generate_coo_excel(shipment_id: int, db: Session = Depends(get_db)):
         ws.cell(row_idx, 5, p.unit or "PCS").font = font_regular
         ws.cell(row_idx, 6, fob_usd).font = font_regular
         ws.cell(row_idx, 7, "AN/CMB").font = font_regular
-        ws.cell(row_idx, 8, f"{len(s.products)} PKGS ONLY").font = font_regular
+        ws.cell(row_idx, 8, f"{len(getattr(s, 'products', []) or [])} PKGS ONLY").font = font_regular
         ws.cell(row_idx, 9, net_w if net_w > 0 else q).font = font_regular
         ws.cell(row_idx, 10, "KILOGRAMS (KGS)").font = font_regular
         ws.cell(row_idx, 11, "Gross Quantity").font = font_regular
@@ -891,8 +892,10 @@ def generate_coo_excel(shipment_id: int, db: Session = Depends(get_db)):
         row_idx += 1
 
     for col in ws.columns:
-        col_letter = get_column_letter(col[0].column)
-        ws.column_dimensions[col_letter].width = 16
+        col_idx = col[0].column
+        if col_idx is not None:
+            col_letter = get_column_letter(col_idx)
+            ws.column_dimensions[col_letter].width = 16
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -912,7 +915,8 @@ def generate_full_workbook_excel(shipment_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Shipment not found")
 
     wb = openpyxl.Workbook()
-    wb.remove(wb.active) # Remove default sheet
+    if wb.active is not None:
+        wb.remove(wb.active) # Remove default sheet
 
     font_bold = Font(name="Calibri", size=9, bold=True)
     font_title = Font(name="Calibri", size=11, bold=True)
@@ -987,9 +991,9 @@ def generate_full_workbook_excel(shipment_id: int, db: Session = Depends(get_db)
         ])
 
     # 5. Customer Sheets P_1 & P_2
-    shipment_cust_list = [sc.customer_id for sc in s.customers] if s.customers else [1, 2]
+    shipment_cust_list: List[int] = [int(getattr(sc, "customer_id", 0) or 0) for sc in s.customers] if s.customers else [1, 2]
     if len(shipment_cust_list) < 2:
-        shipment_cust_list.extend([c.id for c in db.query(Customer).all() if c.id not in shipment_cust_list])
+        shipment_cust_list.extend([int(getattr(c, "id", 0) or 0) for c in db.query(Customer).all() if int(getattr(c, "id", 0) or 0) not in shipment_cust_list])
     if len(shipment_cust_list) < 2:
         shipment_cust_list = [1, 2]
 
@@ -1000,7 +1004,7 @@ def generate_full_workbook_excel(shipment_id: int, db: Session = Depends(get_db)
         for cell in ws_cust[1]:
             cell.font = font_bold
 
-        cust_products = [p for p in s.products if p.customer_id == c_id]
+        cust_products = [p for p in s.products if int(getattr(p, "customer_id", 0) or 0) == c_id]
         if not cust_products and c_idx == 1:
             cust_products = s.products
 
@@ -1092,13 +1096,15 @@ def generate_full_workbook_excel(shipment_id: int, db: Session = Depends(get_db)
         hsn = p.hsn_code or "00000000"
         q = float(p.quantity or 1.0)
         rate_usd = round(float(p.purchase_price or 0.0) / float(s.usd_rate or 83.5), 2) if float(s.usd_rate or 83.5) > 0 else 1.0
-        ws_coo.append([hsn, f"=LEFT(A{ws_coo.max_row+1},4)", p.product_name, q, p.unit or "PCS", round(q * rate_usd, 2), "AN/CMB", f"{len(s.products)} PKGS ONLY", float(p.net_weight_kg or p.weight_val or 0.0), "KILOGRAMS (KGS)"])
+        ws_coo.append([hsn, f"=LEFT(A{ws_coo.max_row+1},4)", p.product_name, q, p.unit or "PCS", round(q * rate_usd, 2), "AN/CMB", f"{len(getattr(s, 'products', []) or [])} PKGS ONLY", float(p.net_weight_kg or p.weight_val or 0.0), "KILOGRAMS (KGS)"])
 
     # Auto-adjust column widths across all sheets
     for sheet in wb.worksheets:
         for col in sheet.columns:
-            col_letter = get_column_letter(col[0].column)
-            sheet.column_dimensions[col_letter].width = 16
+            col_idx = col[0].column
+            if col_idx is not None:
+                col_letter = get_column_letter(col_idx)
+                sheet.column_dimensions[col_letter].width = 16
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -1150,7 +1156,7 @@ def generate_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depe
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    story = []
+    story: List[Flowable] = []
 
     build_pdf_header(story, "REQUEST FOR QUOTATION (RFQ)", f"Supplier: {v.name} ({v.code})", s.shipment_no, s.shipment_date or "")
 
@@ -1171,7 +1177,7 @@ def generate_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depe
     story.append(Spacer(1, 15))
 
     # Items table
-    table_data = [
+    table_data: List[List[Any]] = [
         ["#", "Product Name", "HSN", "Qty", "Cartons", "Unit Wt", "Net Wt", "Unit Price", "Net Price/KG", "Total Payable"]
     ]
 
@@ -1188,8 +1194,8 @@ def generate_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depe
 
             table_data.append([
                 str(idx),
-                p.product_name,
-                p.hsn_code or "-",
+                str(p.product_name or ""),
+                str(p.hsn_code or "-"),
                 f"{qty_val:,.0f}",
                 str(abs(int(p.cartons_count or 0))),
                 f"{unit_w:.2f}kg",
@@ -1206,8 +1212,8 @@ def generate_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depe
             tot_pay = qty_val * u_price
             table_data.append([
                 str(idx),
-                r.product_name,
-                r.hsn_code or "-",
+                str(r.product_name or ""),
+                str(r.hsn_code or "-"),
                 f"{qty_val:,.0f}",
                 "1",
                 "0.50kg",
@@ -1228,8 +1234,8 @@ def generate_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depe
             price_per_kg = tot_pay / net_w if net_w > 0 else (u_price / unit_w if unit_w > 0 else 0.0)
             table_data.append([
                 str(idx),
-                sp.product_name,
-                sp.hsn_code or "-",
+                str(sp.product_name or ""),
+                str(sp.hsn_code or "-"),
                 f"{qty_val:,.0f}",
                 str(abs(int(sp.no_bags_qty or 1))),
                 f"{unit_w:.2f}kg",
@@ -1303,7 +1309,7 @@ def generate_vendor_rfq_excel(shipment_id: int, vendor_id: int, db: Session = De
         reqs = db.query(ShipmentCustomerRequirement).all()
 
     wb = openpyxl.Workbook()
-    ws = wb.active
+    ws = wb.active or wb.create_sheet()
     ws.title = f"RFQ-{v.code}"
 
     # Title
@@ -1317,11 +1323,11 @@ def generate_vendor_rfq_excel(shipment_id: int, vendor_id: int, db: Session = De
     ]
     ws.append(headers)
 
-    font_bold = Font(bold=True)
-    for cell in ws[4]:
-        cell.font = font_bold
-        cell.fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
-        cell.font = Font(bold=True, color="FFFFFF")
+    header_row = ws[4]
+    if header_row:
+        for cell in header_row:
+            cell.fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+            cell.font = Font(bold=True, color="FFFFFF")
 
     if pis:
         for idx, p in enumerate(pis, 1):

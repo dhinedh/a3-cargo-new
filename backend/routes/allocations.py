@@ -2,18 +2,28 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-from typing import List, Optional
+from typing import List, Optional, Any
 from decimal import Decimal
 import io
 import pandas as pd
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from database import get_db
 import models
 import schemas
 from routes.shipments import recalculate_shipment, format_sub_hsn
+
+def to_float(val: Any) -> float:
+    if not val:
+        return 0.0
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return 0.0
 
 router = APIRouter(prefix="/api/v1/shipments", tags=["Vendor Allocation & Proforma Invoice"])
 
@@ -289,52 +299,88 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
     created_items = []
 
     for idx, row in df.iterrows():
-        p_name = str(row.get("product_name") or row.get("product") or row.get("item") or f"PI Item {int(idx)+1}").strip()
+        p_name = str(row.get("product_name") or row.get("product") or row.get("item") or f"PI Item {int(str(idx))+1}").strip()
         if not p_name or p_name.lower() == "nan":
             continue
 
         v_ident = str(row.get("vendor_code") or row.get("vendor") or row.get("vendor_name") or row.get("supplier") or "").strip()
-        v_id = vendors_by_code.get(v_ident.upper()) or vendors_by_name.get(v_ident.lower()) or default_vendor.id
+        if v_ident.lower() == "nan": v_ident = ""
+        v_id = vendors_by_code.get(v_ident.upper()) or vendors_by_name.get(v_ident.lower())
+        if not v_id and v_ident:
+            found_v = db.query(models.Vendor).filter(
+                or_(
+                    func.lower(models.Vendor.name) == v_ident.lower(),
+                    func.lower(models.Vendor.code) == v_ident.lower(),
+                    models.Vendor.name.ilike(f"%{v_ident}%")
+                )
+            ).first()
+            if found_v:
+                v_id = found_v.id
+            else:
+                new_code = f"VEND-{db.query(models.Vendor).count() + 1:03d}"
+                new_v = models.Vendor(name=v_ident, code=new_code, country="India")
+                db.add(new_v)
+                db.flush()
+                v_id = new_v.id
+                vendors_by_name[v_ident.lower()] = v_id
+        if not v_id:
+            v_id = default_vendor.id
 
-        # Match requirement if requirement_id or req_id is provided
+        # Match requirement if requirement_id, req_id or product_name is provided
         req_id_raw = row.get("requirement_id") or row.get("req_id")
         alloc_id = None
         hsn_code = str(row.get("hsn_code") or row.get("hsn") or row.get("hs_code") or "").strip()
         if hsn_code.lower() == "nan": hsn_code = ""
 
+        req = None
         if req_id_raw and str(req_id_raw).strip().isdigit():
             r_id = int(str(req_id_raw).strip())
             req = db.query(models.ShipmentCustomerRequirement).filter(
                 models.ShipmentCustomerRequirement.id == r_id,
                 models.ShipmentCustomerRequirement.shipment_id == shipment_id
             ).first()
-            if req:
-                if not hsn_code:
-                    hsn_code = req.hsn_code or ""
-                alloc = db.query(models.ShipmentVendorAllocation).filter(
-                    models.ShipmentVendorAllocation.requirement_id == req.id,
-                    models.ShipmentVendorAllocation.vendor_id == v_id
+
+        if not req and p_name:
+            req = db.query(models.ShipmentCustomerRequirement).filter(
+                models.ShipmentCustomerRequirement.shipment_id == shipment_id,
+                func.lower(models.ShipmentCustomerRequirement.product_name) == p_name.lower()
+            ).first()
+            if not req:
+                req = db.query(models.ShipmentCustomerRequirement).filter(
+                    models.ShipmentCustomerRequirement.shipment_id == shipment_id,
+                    models.ShipmentCustomerRequirement.product_name.ilike(f"%{p_name.strip()}%")
                 ).first()
-                if not alloc:
-                    alloc = models.ShipmentVendorAllocation(
-                        shipment_id=shipment_id,
-                        requirement_id=req.id,
-                        vendor_id=v_id,
-                        allocated_quantity=req.required_quantity,
-                        allocated_unit=req.unit,
-                        status="PI_RECORDED"
-                    )
-                    db.add(alloc)
-                    db.flush()
-                else:
-                    alloc.status = "PI_RECORDED"
-                alloc_id = alloc.id
+
+        if req:
+            if not hsn_code:
+                hsn_code = req.hsn_code or ""
+            alloc = db.query(models.ShipmentVendorAllocation).filter(
+                models.ShipmentVendorAllocation.requirement_id == req.id,
+                models.ShipmentVendorAllocation.vendor_id == v_id
+            ).first()
+            if not alloc:
+                alloc = models.ShipmentVendorAllocation(
+                    shipment_id=shipment_id,
+                    requirement_id=req.id,
+                    vendor_id=v_id,
+                    allocated_quantity=req.required_quantity,
+                    allocated_unit=req.unit,
+                    status="PI_RECORDED"
+                )
+                db.add(alloc)
+                db.flush()
+            else:
+                alloc.status = "PI_RECORDED"
+            alloc_id = alloc.id
 
         sku_val = str(row.get("sku") or row.get("sku_name") or "").strip()
         if sku_val.lower() == "nan": sku_val = ""
 
+        unit_type = str(row.get("unit_type") or row.get("quantity_type") or row.get("type_which_type_of_unit") or row.get("unit") or row.get("uom") or "").strip()
+        if unit_type.lower() == "nan": unit_type = ""
+
         try:
-            qty = abs(Decimal(str(row.get("proforma_qty") or row.get("quantity") or row.get("qty") or row.get("total_units") or row.get("total_qty") or 0)))
+            qty = abs(Decimal(str(row.get("quantity") or row.get("quanity_of_that_unit") or row.get("proforma_qty") or row.get("qty") or row.get("total_units") or row.get("total_qty") or 0)))
         except Exception:
             qty = Decimal("0.0")
 
@@ -370,6 +416,9 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
                 net_wt = abs(cartons * units_per_c * u_weight)
             elif qty > 0 and u_weight > 0:
                 net_wt = abs(qty * u_weight)
+            elif unit_type.upper() in ["KG", "KGS", "KILOGRAM", "KILOGRAMS"]:
+                net_wt = qty
+                u_weight = Decimal("1.0")
 
         if u_weight == Decimal("0.0") and net_wt > 0 and qty > 0:
             u_weight = net_wt / qty
@@ -384,9 +433,17 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
                 gross_wt = abs(net_wt * Decimal("1.05"))
 
         try:
-            price = abs(Decimal(str(row.get("proforma_price") or row.get("price") or row.get("cost") or row.get("rate") or row.get("vendor_unit_price") or row.get("unit_price") or row.get("net_price") or row.get("net_unit_price") or row.get("price_per_unit") or row.get("rate_per_unit") or row.get("unit_rate") or row.get("inr_price") or row.get("price_inr") or 0)))
+            price = abs(Decimal(str(row.get("price_per_unit") or row.get("unit_price") or row.get("proforma_price") or row.get("price") or row.get("cost") or row.get("rate") or row.get("vendor_unit_price") or row.get("net_price") or row.get("net_unit_price") or row.get("rate_per_unit") or row.get("unit_rate") or row.get("inr_price") or row.get("price_inr") or 0)))
         except Exception:
             price = Decimal("0.0")
+
+        try:
+            total_price_val = abs(Decimal(str(row.get("total_price") or row.get("total_amount") or row.get("total_payable") or row.get("total") or 0)))
+        except Exception:
+            total_price_val = Decimal("0.0")
+
+        if price == Decimal("0.0") and total_price_val > 0 and qty > 0:
+            price = total_price_val / qty
 
         try:
             price_per_kg_val = abs(Decimal(str(row.get("price_per_kg") or row.get("kg_price") or row.get("price_kg") or row.get("price/kg") or row.get("rate_per_kg") or row.get("rate/kg") or row.get("net_price_per_kg") or row.get("cost_per_kg") or row.get("inr_per_kg") or 0)))
@@ -401,37 +458,263 @@ async def upload_vendor_proforma_excel(shipment_id: int, file: UploadFile = File
             else:
                 price = price_per_kg_val
 
-        total_pay = qty * price
+        total_pay = total_price_val if total_price_val > 0 else (qty * price)
 
-        notes = str(row.get("notes") or row.get("remarks") or "Imported via Vendor PI Excel").strip()
+        user_notes = str(row.get("notes") or row.get("remarks") or "").strip()
+        if user_notes.lower() == "nan": user_notes = ""
 
-        pi_item = models.ShipmentVendorProformaItem(
-            shipment_id=shipment_id,
-            allocation_id=alloc_id,
-            vendor_id=v_id,
-            product_name=p_name,
-            sku=sku_val,
-            hsn_code=hsn_code,
-            proforma_qty=qty,
-            cartons_count=cartons,
-            units_per_carton=units_per_c,
-            unit_weight_val=u_weight,
-            unit_weight_unit="KG",
-            net_weight_kg=net_wt,
-            gross_weight_kg=gross_wt,
-            proforma_price=price,
-            total_payable=total_pay,
-            currency="INR",
-            notes=notes
-        )
-        db.add(pi_item)
-        created_items.append(pi_item)
+        if unit_type:
+            notes = f"Unit: {unit_type} | {user_notes}".strip(" |")
+        else:
+            notes = user_notes or "Imported via Vendor PI Excel"
+
+        existing_pi = None
+        if alloc_id:
+            existing_pi = db.query(models.ShipmentVendorProformaItem).filter(
+                models.ShipmentVendorProformaItem.shipment_id == shipment_id,
+                models.ShipmentVendorProformaItem.allocation_id == alloc_id
+            ).first()
+        if not existing_pi:
+            existing_pi = db.query(models.ShipmentVendorProformaItem).filter(
+                models.ShipmentVendorProformaItem.shipment_id == shipment_id,
+                models.ShipmentVendorProformaItem.vendor_id == v_id,
+                func.lower(models.ShipmentVendorProformaItem.product_name) == p_name.lower()
+            ).first()
+
+        if existing_pi:
+            existing_pi.proforma_qty = qty
+            if cartons > 0: existing_pi.cartons_count = cartons
+            if units_per_c > 0: existing_pi.units_per_carton = units_per_c
+            if u_weight > 0: existing_pi.unit_weight_val = u_weight
+            if unit_type: existing_pi.unit_weight_unit = unit_type.upper()
+            if net_wt > 0: existing_pi.net_weight_kg = net_wt
+            if gross_wt > 0: existing_pi.gross_weight_kg = gross_wt
+            existing_pi.proforma_price = price
+            existing_pi.total_payable = total_pay
+            existing_pi.notes = notes
+            if hsn_code and not existing_pi.hsn_code:
+                existing_pi.hsn_code = hsn_code
+            created_items.append(existing_pi)
+        else:
+            pi_item = models.ShipmentVendorProformaItem(
+                shipment_id=shipment_id,
+                allocation_id=alloc_id,
+                vendor_id=v_id,
+                product_name=p_name,
+                sku=sku_val,
+                hsn_code=hsn_code,
+                proforma_qty=qty,
+                cartons_count=cartons,
+                units_per_carton=units_per_c,
+                unit_weight_val=u_weight,
+                unit_weight_unit=unit_type.upper() if unit_type else "KG",
+                net_weight_kg=net_wt,
+                gross_weight_kg=gross_wt,
+                proforma_price=price,
+                total_payable=total_pay,
+                currency="INR",
+                notes=notes
+            )
+            db.add(pi_item)
+            created_items.append(pi_item)
 
     db.commit()
     for item in created_items:
         db.refresh(item)
     sync_proforma_and_recalculate_duties(shipment_id, db)
     return created_items
+
+@router.get("/proforma/excel-template")
+@router.get("/{shipment_id}/proforma/excel-template")
+def download_vendor_proforma_template(shipment_id: Optional[int] = None, db: Session = Depends(get_db)):
+    rows = []
+    shipment_ref = ""
+
+    if shipment_id:
+        shipment = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
+        if shipment:
+            shipment_ref = (shipment.reference_number or f"Shipment_{shipment_id}").replace("/", "_").replace(" ", "_")
+
+            # 1. Fetch vendor allocations for this shipment
+            allocations = db.query(models.ShipmentVendorAllocation).filter(
+                models.ShipmentVendorAllocation.shipment_id == shipment_id
+            ).all()
+
+            # Existing proforma items for this shipment
+            proforma_items = db.query(models.ShipmentVendorProformaItem).filter(
+                models.ShipmentVendorProformaItem.shipment_id == shipment_id
+            ).all()
+            pi_by_alloc = {pi.allocation_id: pi for pi in proforma_items if pi.allocation_id}
+            pi_by_prod = {pi.product_name.strip().lower(): pi for pi in proforma_items if pi.product_name}
+
+            allocated_req_ids = set()
+
+            for alloc in allocations:
+                if alloc.requirement_id:
+                    allocated_req_ids.add(alloc.requirement_id)
+                req = alloc.requirement
+                p_name = (req.product_name if req else "") or "Item"
+                v_name = (alloc.vendor.name if alloc.vendor else "") or (alloc.vendor.code if alloc.vendor else f"Vendor {alloc.vendor_id}")
+                unit_str = alloc.allocated_unit or (req.unit if req else "PCS") or "PCS"
+
+                # Check if proforma price already recorded
+                existing_pi = pi_by_alloc.get(alloc.id) or pi_by_prod.get(p_name.strip().lower())
+                qty_val = float(existing_pi.proforma_qty) if (existing_pi and existing_pi.proforma_qty and existing_pi.proforma_qty > 0) else float(alloc.allocated_quantity or (req.required_quantity if req else 1.0))
+                price_val = float(existing_pi.proforma_price) if (existing_pi and existing_pi.proforma_price and existing_pi.proforma_price > 0) else None
+                total_val = float(existing_pi.total_payable) if (existing_pi and existing_pi.total_payable and existing_pi.total_payable > 0) else None
+
+                rows.append({
+                    "Vendor Name": v_name,
+                    "Product Name": p_name,
+                    "Unit Type": unit_str,
+                    "Quantity": qty_val,
+                    "Price Per Unit": price_val,
+                    "Total Price": total_val
+                })
+
+            # 2. Check unallocated customer requirements
+            unallocated_reqs = db.query(models.ShipmentCustomerRequirement).filter(
+                models.ShipmentCustomerRequirement.shipment_id == shipment_id
+            ).all()
+            for u_req in unallocated_reqs:
+                if u_req.id in allocated_req_ids:
+                    continue
+                p_name = u_req.product_name or "Item"
+                existing_pi = pi_by_prod.get(p_name.strip().lower())
+                v_name = (existing_pi.vendor.name if existing_pi and existing_pi.vendor else "")
+                qty_val = float(existing_pi.proforma_qty) if (existing_pi and existing_pi.proforma_qty and existing_pi.proforma_qty > 0) else float(u_req.required_quantity or 1.0)
+                price_val = float(existing_pi.proforma_price) if (existing_pi and existing_pi.proforma_price and existing_pi.proforma_price > 0) else None
+                total_val = float(existing_pi.total_payable) if (existing_pi and existing_pi.total_payable and existing_pi.total_payable > 0) else None
+
+                rows.append({
+                    "Vendor Name": v_name,
+                    "Product Name": p_name,
+                    "Unit Type": u_req.unit or "PCS",
+                    "Quantity": qty_val,
+                    "Price Per Unit": price_val,
+                    "Total Price": total_val
+                })
+
+    # Fallback sample rows if no requirements or allocations exist
+    if not rows:
+        rows = [
+            {
+                "Vendor Name": "Vendor A",
+                "Product Name": "Ragi FLOUR 500 G",
+                "Unit Type": "KG",
+                "Quantity": 120,
+                "Price Per Unit": None,
+                "Total Price": None
+            },
+            {
+                "Vendor Name": "Vendor B",
+                "Product Name": "Maida Flour 1 KG",
+                "Unit Type": "PCS",
+                "Quantity": 240,
+                "Price Per Unit": None,
+                "Total Price": None
+            },
+            {
+                "Vendor Name": "Vendor C",
+                "Product Name": "Wheat Flour 1 KG",
+                "Unit Type": "CTN",
+                "Quantity": 50,
+                "Price Per Unit": None,
+                "Total Price": None
+            }
+        ]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Vendor Proforma Upload"
+
+    headers = [
+        "Vendor Name",
+        "Product Name",
+        "Unit Type",
+        "Quantity",
+        "Price Per Unit",
+        "Total Price"
+    ]
+    ws.append(headers)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    border_thin = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    for col_idx in range(1, 7):
+        c = ws.cell(row=1, column=col_idx)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = header_align
+        c.border = border_thin
+    ws.row_dimensions[1].height = 28
+
+    data_font = Font(name="Calibri", size=11)
+    center_align = Alignment(horizontal="center", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center")
+    right_align = Alignment(horizontal="right", vertical="center")
+
+    for r_idx, r_data in enumerate(rows, start=2):
+        ws.cell(row=r_idx, column=1, value=r_data.get("Vendor Name", "")).alignment = left_align
+        ws.cell(row=r_idx, column=2, value=r_data.get("Product Name", "")).alignment = left_align
+        ws.cell(row=r_idx, column=3, value=r_data.get("Unit Type", "PCS")).alignment = center_align
+
+        # Column 4: Quantity (Pre-filled from shipment/requirement, user can edit)
+        q_cell = ws.cell(row=r_idx, column=4, value=r_data.get("Quantity"))
+        q_cell.alignment = right_align
+        q_cell.number_format = "#,##0.##"
+
+        # Column 5: Price Per Unit (User enters price)
+        p_val = r_data.get("Price Per Unit")
+        p_cell = ws.cell(row=r_idx, column=5, value=p_val)
+        p_cell.alignment = right_align
+        p_cell.number_format = "#,##0.00"
+
+        # Column 6: Total Price (Calculated formula or existing total)
+        t_cell = ws.cell(row=r_idx, column=6)
+        t_val = r_data.get("Total Price")
+        if t_val is not None:
+            t_cell.value = t_val
+        else:
+            t_cell.value = f"=IF(AND(ISNUMBER(D{r_idx}),ISNUMBER(E{r_idx}),E{r_idx}>0),ROUND(D{r_idx}*E{r_idx},2),\"\")"
+        t_cell.alignment = right_align
+        t_cell.number_format = "#,##0.00"
+
+        for col_idx in range(1, 7):
+            cell = ws.cell(row=r_idx, column=col_idx)
+            cell.font = data_font
+            cell.border = border_thin
+        ws.row_dimensions[r_idx].height = 22
+
+    column_widths = {
+        "A": 26, # Vendor Name
+        "B": 38, # Product Name
+        "C": 14, # Unit Type
+        "D": 16, # Quantity
+        "E": 18, # Price Per Unit
+        "F": 20  # Total Price
+    }
+    for col_letter, width in column_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"Vendor_Proforma_Template_{shipment_ref}.xlsx" if shipment_ref else "Stage2_Vendor_Proforma_Upload_Template.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @router.get("/{shipment_id}/proforma/export/excel")
 def export_stage2_proforma_excel(shipment_id: int, db: Session = Depends(get_db)):
@@ -504,7 +787,7 @@ def export_stage2_proforma_pdf(shipment_id: int, db: Session = Depends(get_db)):
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
-    story = []
+    story: List[Flowable] = []
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=15, leading=19, textColor=colors.HexColor("#1e293b"))
@@ -838,20 +1121,23 @@ def get_vendor_payment_summary(shipment_id: int, db: Session = Depends(get_db)):
         v_payments = [p for p in payments if p.vendor_id == v_id]
 
         v_po = next((po for po in pos if po.vendor_id == v_id), None)
-        if v_po and float(v_po.total_amount) > 0:
-            total_purchase = float(v_po.total_amount)
+        if v_po and to_float(v_po.total_amount) > 0:
+            total_purchase = to_float(v_po.total_amount)
         else:
             v_pis = db.query(models.ShipmentVendorProformaItem).filter(
                 models.ShipmentVendorProformaItem.shipment_id == shipment_id,
                 models.ShipmentVendorProformaItem.vendor_id == v_id
             ).all()
-            total_purchase = sum(float(pi.proforma_qty) * float(pi.proforma_price) for pi in v_pis)
+            total_purchase = sum(to_float(pi.proforma_qty) * to_float(pi.proforma_price) for pi in v_pis)
             if total_purchase == 0 and v_payments:
-                total_purchase = max(sum(float(p.amount_paid) for p in v_payments), max([float(p.amount_paid) for p in v_payments if p.payment_type == "ADVANCE"], default=0.0) * 1.6667)
+                total_purchase = max(
+                    sum(to_float(p.amount_paid) for p in v_payments),
+                    max([to_float(p.amount_paid) for p in v_payments if (getattr(p, "payment_type", "") or "").upper() == "ADVANCE"], default=0.0) * 1.6667
+                )
 
-        advance_paid = sum(float(p.amount_paid) for p in v_payments if p.payment_type.upper() == "ADVANCE")
-        balance_paid = sum(float(p.amount_paid) for p in v_payments if p.payment_type.upper() in ["BALANCE", "FULL"])
-        total_paid = sum(float(p.amount_paid) for p in v_payments)
+        advance_paid = sum(to_float(p.amount_paid) for p in v_payments if (getattr(p, "payment_type", "") or "").upper() == "ADVANCE")
+        balance_paid = sum(to_float(p.amount_paid) for p in v_payments if (getattr(p, "payment_type", "") or "").upper() in ["BALANCE", "FULL"])
+        total_paid = sum(to_float(p.amount_paid) for p in v_payments)
         pending_amount = max(0.0, total_purchase - total_paid)
 
         if pending_amount <= 0.01 and total_purchase > 0:
@@ -875,7 +1161,7 @@ def get_vendor_payment_summary(shipment_id: int, db: Session = Depends(get_db)):
                     "id": p.id,
                     "payment_ref": p.payment_ref,
                     "payment_type": p.payment_type,
-                    "amount_paid": float(p.amount_paid),
+                    "amount_paid": to_float(p.amount_paid),
                     "currency": p.currency,
                     "payment_date": p.payment_date,
                     "payment_method": p.payment_method,
@@ -1344,7 +1630,7 @@ def get_vendor_rfq_pdf(shipment_id: int, vendor_id: int, db: Session = Depends(g
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
-    story = []
+    story: List[Flowable] = []
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=16, leading=20, textColor=colors.HexColor("#1e293b"))
@@ -1803,6 +2089,14 @@ def simulate_quotation(payload: schemas.QuotationSimulationRequest, db: Session 
         per_unit_duty_lkr = cid_amt + pal_amt + cess_amt + excise_amt + sscl_amt + vat_amt
 
     total_duty_lkr = per_unit_duty_lkr * qty
+
+    d_base = Decimal(str(base_price_lkr))
+    gen_duty_pct = float(parse_percentage_rate(tariff_line.general_duty_rate if tariff_line else None, d_base))
+    vat_pct = float(parse_percentage_rate(tariff_line.vat_rate if (tariff_line and tariff_line.vat_rate) else "18.0%", d_base))
+    pal_pct = float(parse_percentage_rate(tariff_line.pal_rate if tariff_line else None, d_base))
+    cess_pct = float(parse_percentage_rate(tariff_line.cess_rate if tariff_line else None, d_base))
+    sscl_pct = float(parse_percentage_rate(tariff_line.sscl_rate if (tariff_line and tariff_line.sscl_rate) else "2.5%", d_base))
+
 
     # 5. Cost & Quotation Model
     cnf_price_lkr = base_price_lkr + per_unit_freight_lkr

@@ -508,6 +508,12 @@ export const apiClient = {
     return `${API_BASE}/shipments/${shipmentId}/proforma/export/excel`;
   },
 
+  getVendorProformaTemplateUrl: (shipmentId?: number) => {
+    return shipmentId
+      ? `${API_BASE}/shipments/${shipmentId}/proforma/excel-template`
+      : `${API_BASE}/shipments/proforma/excel-template`;
+  },
+
   getStage2ProformaExportPdfUrl: (shipmentId: number) => {
     return `${API_BASE}/shipments/${shipmentId}/proforma/export/pdf`;
   },

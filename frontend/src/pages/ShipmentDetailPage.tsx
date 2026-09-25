@@ -771,17 +771,17 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 min-w-0">
                 <button
                   onClick={onBack}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer shrink-0"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>All Shipments</span>
+                  <ChevronLeft className="w-4 h-4 shrink-0" />
+                  <span className="whitespace-nowrap">All Shipments</span>
                 </button>
                 <button
                   onClick={() => toggleSidebar(true)}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
                   title="Collapse Sidebar"
                 >
                   <PanelLeftClose className="w-4 h-4" />
@@ -789,27 +789,27 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
               </div>
 
               {/* Shipment Info */}
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-base font-extrabold text-slate-900 font-mono tracking-tight">
+                  <h2 className="text-base font-extrabold text-slate-900 font-mono tracking-tight truncate">
                     {shipment.shipment_no}
                   </h2>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-300">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-300 shrink-0">
                     {shipment.status || 'DRAFT'}
                   </span>
                 </div>
-                <p className="text-[11px] font-medium text-slate-500">
+                <p className="text-[11px] font-medium text-slate-500 truncate">
                   FY: {shipment.shipment_no?.split('/')?.[2] || '2026-27'} &bull; Currency: {shipment.currency || 'INR'}
                 </p>
-                <p className="text-[11px] font-medium text-slate-500">
+                <p className="text-[11px] font-medium text-slate-500 truncate">
                   Port: {shipment.destination || 'Colombo Port, Sri Lanka'}
                 </p>
               </div>
 
               {/* Margins Row */}
               <div className="flex items-center gap-1.5 text-[11px] pt-1">
-                <span className="text-slate-400 font-medium">Margins (Cell B11):</span>
-                <div className="flex items-center gap-1 font-mono text-[11px]">
+                <span className="text-slate-400 font-medium whitespace-nowrap">Margins (Cell B11):</span>
+                <div className="flex items-center gap-1 font-mono text-[11px] whitespace-nowrap">
                   <span className="bg-[#FFC000] text-amber-950 px-1.5 py-0.5 rounded font-bold">
                     IN: {Number(shipment.indian_invoice_margin_pct ?? 15).toFixed(4)}%
                   </span>
