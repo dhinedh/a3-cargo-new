@@ -1,12 +1,13 @@
 import re
 from decimal import Decimal
+from typing import Any, Optional
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 # pyrefly: ignore [missing-import]
 from sqlalchemy import or_
 from models import Shipment, ShipmentProduct, TariffLine
 
-def parse_tariff_rate_val(rate_str: str, base_val_lkr: float, weight_kg: float) -> float:
+def parse_tariff_rate_val(rate_str: Any, base_val_lkr: float, weight_kg: float) -> float:
     """
     Parses Sri Lanka Customs tariff rate strings into actual duty amount in LKR per unit.
     Handles percentage rates ('20%'), exemptions ('Ex', 'Free'), specific duties ('Rs. 50/kg'),
@@ -53,7 +54,7 @@ def parse_tariff_rate_val(rate_str: str, base_val_lkr: float, weight_kg: float) 
         return 0.0
 
 
-def parse_percentage_rate(rate_str: str, base_value: Decimal) -> Decimal:
+def parse_percentage_rate(rate_str: Any, base_value: Decimal) -> Decimal:
     """
     Parses rates like '15%', 'Free', 'Rs. 50/kg' into an estimated percentage value for backwards compatibility.
     """

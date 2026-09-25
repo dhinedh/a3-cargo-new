@@ -22,25 +22,25 @@ class Chapter(Base):
 class TariffLine(Base):
     __tablename__ = "tariff_lines"
 
-    id = Column(Integer, primary_key=True, index=True)
-    chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=False, index=True)
-    hs_code = Column(String, index=True, nullable=True)
-    description = Column(Text, nullable=False)
-    unit = Column(String, nullable=True)
-    icl_slsi = Column(String, nullable=True)  # Import Control License / SLSI regulation
-    general_duty_rate = Column(String, nullable=True)
-    preferential_rates = Column(JSON, default=dict)  # {"ISFTA": "Free", "PSFTA": "Free", "SAFTA": "10%"}
-    vat_rate = Column(String, nullable=True)
-    pal_rate = Column(String, nullable=True)
-    cess_rate = Column(String, nullable=True)
-    sscl_rate = Column(String, nullable=True) # Social Security Contribution Levy
-    excise_rate = Column(String, nullable=True)
-    scl_rate = Column(String, nullable=True)
-    notes = Column(Text, nullable=True)
-    indent_level = Column(Integer, default=0)
-    raw_row_text = Column(Text, nullable=True)
-    page_number = Column(Integer, nullable=True)
-    is_verified = Column(Boolean, default=False)
+    id: Any = Column(Integer, primary_key=True, index=True)
+    chapter_id: Any = Column(Integer, ForeignKey("chapters.id"), nullable=False, index=True)
+    hs_code: Any = Column(String, index=True, nullable=True)
+    description: Any = Column(Text, nullable=False)
+    unit: Any = Column(String, nullable=True)
+    icl_slsi: Any = Column(String, nullable=True)  # Import Control License / SLSI regulation
+    general_duty_rate: Any = Column(String, nullable=True)
+    preferential_rates: Any = Column(JSON, default=dict)  # {"ISFTA": "Free", "PSFTA": "Free", "SAFTA": "10%"}
+    vat_rate: Any = Column(String, nullable=True)
+    pal_rate: Any = Column(String, nullable=True)
+    cess_rate: Any = Column(String, nullable=True)
+    sscl_rate: Any = Column(String, nullable=True) # Social Security Contribution Levy
+    excise_rate: Any = Column(String, nullable=True)
+    scl_rate: Any = Column(String, nullable=True)
+    notes: Any = Column(Text, nullable=True)
+    indent_level: Any = Column(Integer, default=0)
+    raw_row_text: Any = Column(Text, nullable=True)
+    page_number: Any = Column(Integer, nullable=True)
+    is_verified: Any = Column(Boolean, default=False)
 
     chapter = relationship("Chapter", back_populates="tariff_lines")
 
