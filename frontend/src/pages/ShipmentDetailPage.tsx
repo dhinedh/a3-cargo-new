@@ -751,26 +751,43 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
         }`}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-slate-200 space-y-3">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={onBack}
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>All Shipments</span>
-            </button>
-            <button
-              onClick={() => toggleSidebar(!isSidebarCollapsed)}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              {isSidebarCollapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-            </button>
-          </div>
+        <div className="p-3 border-b border-slate-200 overflow-hidden">
+          {isSidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-2 py-1">
+              <button
+                onClick={() => toggleSidebar(false)}
+                className="w-10 h-10 flex items-center justify-center text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all cursor-pointer border border-blue-200 shadow-2xs"
+                title="Expand Sidebar"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={onBack}
+                className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                title="Back to All Shipments"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={onBack}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>All Shipments</span>
+                </button>
+                <button
+                  onClick={() => toggleSidebar(true)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Collapse Sidebar"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </div>
 
-          {!isSidebarCollapsed && (
-            <>
               {/* Shipment Info */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2">
@@ -802,12 +819,39 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
                   </span>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
 
         {/* Pipeline Navigation */}
-        {!isSidebarCollapsed && (
+        {isSidebarCollapsed ? (
+          <div className="p-2 space-y-2 flex-1 flex flex-col items-center">
+            {PIPELINE_STEPS.map((step) => {
+              const Icon = step.icon;
+              const isActive = activeTab === step.id;
+
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => setActiveTab(step.id)}
+                  title={step.title}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    isActive
+                      ? 'bg-[#0C66E4] text-white font-bold shadow-md scale-105'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  {step.badge !== undefined && step.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
+                      {step.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
           <div className="p-3 space-y-1 flex-1">
             <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2 py-1.5">
               SHIPMENT PIPELINE
@@ -876,6 +920,16 @@ export const ShipmentDetailPage: React.FC<ShipmentDetailPageProps> = ({ shipment
         <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-14 z-10 shadow-2xs flex-wrap gap-3">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            {isSidebarCollapsed && (
+              <button
+                onClick={() => toggleSidebar(false)}
+                className="p-1.5 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer mr-1 flex items-center gap-1.5 font-bold border border-blue-200"
+                title="Expand Sidebar"
+              >
+                <PanelLeft className="w-4 h-4" />
+                <span className="text-[11px]">Sidebar</span>
+              </button>
+            )}
             <span>Shipments</span>
             <span>/</span>
             <span className="font-bold text-slate-800">{shipment.shipment_no}</span>
